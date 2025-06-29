@@ -1,0 +1,98 @@
+<form
+  [formGroup]="loginForm"
+  (ngSubmit)="onSubmit()"
+  class="bg-gradient-to-b from-[#353A5F] to-[#9EBAF3] flex justify-center items-center w-screen h-screen"
+>
+  <div
+    class="bg-white p-6 rounded-3xl shadow-md hover:shadow-2xl transition-shadow duration-300 flex flex-col items-center h-5/6 w-9/12 sm:w-6/12 md:w-10/12 lg:w-7/12 lg:h-[90%]"
+  >
+    <div
+      class="bg-white rounded-3xl w-full h-[20%] flex justify-center items-center p-1"
+    >
+      <img
+        src="logo.png"
+        alt="logo"
+        class="rounded-full w-[100px] h-[100px] md:w-[150px] md:h-[120px] lg:w-[135px] lg:h-[135px] object-cover shadow-md"
+      />
+    </div>
+
+    <div
+      class="bg-white rounded-3xl w-full h-[80%] flex flex-wrap justify-center items-center"
+    >
+      <div class="bg-white w-[80%] h-[80%]">
+        <div
+          class="w-full h-1/3 flex flex-col gap-2 justify-center items-center"
+        >
+          <label
+            for="email"
+            class="font-bold sm:text-sm md:text-base lg:text-xl text-[#353A5F]"
+            >Correo</label
+          >
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            data-cy="input_correo"
+            class="w-[95%] bg-[#F8FAFC] shadow-xl sm:w-[95%] md:w-[60%] lg:w-[65%] h-[35%] rounded-lg"
+          />
+          <div
+            *ngIf="submitted && f['email'].errors"
+            class="text-red-500 text-sm mt-1"
+          >
+            <div *ngIf="f['email'].errors?.['required']">
+              El correo es obligatorio.
+            </div>
+            <div *ngIf="f['email'].errors?.['email']">
+              Ingresa un correo válido.
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="w-full h-1/3 flex flex-col gap-2 justify-center items-center"
+        >
+          <label
+            for="password"
+            class="font-bold sm:text-sm md:text-base lg:text-xl text-[#353A5F]"
+            >Contraseña</label
+          >
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            data-cy="input_contraseña"
+            class="w-[95%] bg-[#F8FAFC] shadow-xl sm:w-[95%] md:w-[60%] lg:w-[65%] h-[35%] rounded-lg"
+          />
+          <div
+            *ngIf="submitted && f['password'].errors"
+            class="text-red-500 text-sm mt-1"
+          >
+            <div *ngIf="f['password'].errors?.['required']">
+              La contraseña es obligatoria.
+            </div>
+            <div *ngIf="f['password'].errors?.['minlength']">
+              Debe tener al menos 8 caracteres.
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="w-full h-1/3 flex justify-center sm:xs md:text-sm lg:text-base"
+        >
+          <a href="#" class="text-[#353A5F] font-bold">Olvide mi contraseña</a>
+        </div>
+      </div>
+
+      <div
+        class="bg-white rounded-3xl w-full h-[20%] flex justify-center items-start"
+      >
+        <button
+          type="submit"
+          class="text-white font-bold w-[85%] sm:w-[95%] md:w-[35%] lg:w-[40%] h-[50%] bg-[#7B9BC7] rounded-lg sm:text-base md:text-lg lg:text-xl shadow-lg hover:shadow-2xl transition-shadow duration-300"
+        >
+          Iniciar sesión
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
