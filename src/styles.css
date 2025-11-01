@@ -1,2 +1,28 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
+@import "primeicons/primeicons.css";
+
+@layer components {
+  .input-base {
+    @apply border border-gray-300 bg-gray-50 text-gray-600 rounded-lg
+           p-2 h-14 w-full pl-10 focus:outline-none focus:ring-2
+           focus:ring-blue-400 transition-colors duration-200;
+  }
+
+  .input-error {
+    @apply border-red-500 bg-red-50 focus:ring-red-400;
+  }
+
+  .error-message {
+    @apply text-red-500 font-bold mt-1 z-10 text-sm;
+  }
+
+  .primary-button{
+    @apply bg-sky-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-sky-600 
+  }
+
+  .disabled-button{
+    @apply bg-gray-400 cursor-not-allowed;
+  }
+    
+}
