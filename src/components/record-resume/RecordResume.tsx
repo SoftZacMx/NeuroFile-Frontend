@@ -87,7 +87,7 @@ export function RecordResume({
   ) ?? [];
 
   return (
-    <div className={className}>
+    <div className={`max-h-[100vh] overflow-y-auto ${className ?? ""}`}>
       <div className="flex flex-col gap-10">
         {/* 1. Motivo de consulta y antecedentes */}
         <RecordSection number={1} title="Motivo de consulta y antecedentes">

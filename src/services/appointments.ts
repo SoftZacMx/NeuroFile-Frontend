@@ -7,16 +7,19 @@ import type {
 
 export interface GetAppointmentsOptions {
   patientId?: number;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export async function getAppointments(
   api: ApiClient,
   options?: GetAppointmentsOptions
 ): Promise<Appointment[]> {
-  const query =
-    options?.patientId != null
-      ? `?patientId=${options.patientId}`
-      : "";
+  const params = new URLSearchParams();
+  if (options?.patientId != null) params.set("patientId", String(options.patientId));
+  if (options?.dateFrom) params.set("dateFrom", options.dateFrom);
+  if (options?.dateTo) params.set("dateTo", options.dateTo);
+  const query = params.toString() ? `?${params.toString()}` : "";
   const res = await api.get<Appointment[]>(`/appointments${query}`);
   if (res.error || res.data === null) {
     throw new Error(res.message ?? "Error al obtener las citas");

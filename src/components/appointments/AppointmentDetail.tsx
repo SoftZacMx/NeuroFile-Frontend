@@ -26,6 +26,17 @@ function formatTimeRange(dateStr: string, durationMinutes = 60): string {
   return `${start} - ${endStr}`;
 }
 
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function initials(name: string): string {
   return name
     .split(/\s+/)
@@ -100,6 +111,9 @@ export function AppointmentDetail({
           </div>
           <p className="text-muted-foreground">
             Hora: {formatTimeRange(appointment.date)}
+          </p>
+          <p className="text-muted-foreground capitalize">
+            Fecha: {formatDate(appointment.date)}
           </p>
           <p className="text-muted-foreground">Servicio: Consulta</p>
         </div>

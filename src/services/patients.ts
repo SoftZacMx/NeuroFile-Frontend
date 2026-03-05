@@ -1,4 +1,5 @@
 import type { Patient } from "@/types/patient";
+import type { PatientSummary } from "@/types/summary";
 import type { ApiClient } from "@/lib/api-client";
 
 export async function getPatients(api: ApiClient): Promise<Patient[]> {
@@ -16,6 +17,17 @@ export async function getPatient(
   const res = await api.get<Patient>(`/patients/${patientId}`);
   if (res.error || res.data === null) {
     throw new Error(res.message ?? "Error al obtener el paciente");
+  }
+  return res.data;
+}
+
+export async function getPatientSummary(
+  api: ApiClient,
+  patientId: string | number
+): Promise<PatientSummary> {
+  const res = await api.get<PatientSummary>(`/patients/${patientId}/summary`);
+  if (res.error || res.data === null) {
+    throw new Error(res.message ?? "Error al obtener el resumen");
   }
   return res.data;
 }

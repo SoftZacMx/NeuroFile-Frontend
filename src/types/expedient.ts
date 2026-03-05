@@ -86,6 +86,15 @@ export interface RecordModality {
   recordId: number;
 }
 
+/** Patient summary as returned with record in list (GET /expedients) */
+export interface RecordPatientSummary {
+  id: number;
+  first_name: string;
+  last_name: string;
+  second_last_name?: string | null;
+  phone?: string;
+}
+
 /** Full record/expedient as returned by API (for display) */
 export interface Record {
   id: number;
@@ -114,3 +123,6 @@ export interface Record {
   diagnoses: RecordDiagnosis[];
   modalities: RecordModality[];
 }
+
+/** Record as returned in list (GET /expedients) with optional patient nested */
+export type RecordListItem = Record & { patient?: RecordPatientSummary };
