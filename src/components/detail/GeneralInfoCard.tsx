@@ -105,7 +105,7 @@ export function GeneralInfoCard({
             className={cn(
               "mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
               status === "active"
-                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                ? "bg-success text-success-foreground"
                 : "bg-muted text-muted-foreground"
             )}
           >

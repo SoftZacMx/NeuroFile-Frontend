@@ -3,6 +3,16 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Patient } from "@/types/patient";
 
+function formatLastAppointmentDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function IconEye({ className }: { className?: string }) {
   return (
     <svg
@@ -75,13 +85,17 @@ export function PatientListItem({
         </div>
       </td>
       <td className="px-4 py-3 text-muted-foreground">{patient.id}</td>
-      <td className="px-4 py-3 text-muted-foreground">—</td>
+      <td className="px-4 py-3 text-muted-foreground">
+        {patient.last_appointment
+          ? formatLastAppointmentDate(patient.last_appointment.date)
+          : "—"}
+      </td>
       <td className="px-4 py-3">
         <span
           className={cn(
             "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
             patient.is_active
-              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+              ? "bg-success text-success-foreground"
               : "bg-muted text-muted-foreground"
           )}
         >

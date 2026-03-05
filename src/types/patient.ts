@@ -1,3 +1,12 @@
+/** Última cita (cuando el listado la incluye) */
+export interface PatientLastAppointment {
+  id: number;
+  date: string;
+  status: boolean;
+  attended: boolean | null;
+  patientId: number;
+}
+
 export interface Patient {
   id: number;
   first_name: string;
@@ -10,4 +19,6 @@ export interface Patient {
   phone: string;
   user_id: number;
   is_active: boolean;
+  /** Incluido en el listado de pacientes (GET /patients) */
+  last_appointment?: PatientLastAppointment | null;
 }

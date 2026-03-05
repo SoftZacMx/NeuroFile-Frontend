@@ -114,7 +114,7 @@ export function RecordsTable({
                   {formatDate(record.created_at)}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  <span className="inline-flex rounded-full bg-success px-2 py-0.5 text-xs font-medium text-success-foreground">
                     Completo
                   </span>
                 </td>

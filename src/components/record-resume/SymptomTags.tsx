@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 
 const TAG_COLORS = [
-  "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-  "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400",
-  "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+  "bg-destructive/15 text-destructive",
+  "bg-warning/15 text-warning",
+  "bg-primary/15 text-primary",
+  "bg-muted text-muted-foreground",
+  "bg-success/15 text-success",
 ];
 
 export interface SymptomTagsProps {
