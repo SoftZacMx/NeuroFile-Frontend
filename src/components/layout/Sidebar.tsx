@@ -60,14 +60,11 @@ function IconExpediente({ className }: { className?: string }) {
 
 function LogoIcon({ className }: { className?: string }) {
   return (
-    <div
-      className={cn(
-        "flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm",
-        className
-      )}
-    >
-      NF
-    </div>
+    <img
+      src="/LogoPng.png"
+      alt="NeuroFile"
+      className={cn("shrink-0 object-contain", className)}
+    />
   );
 }
 

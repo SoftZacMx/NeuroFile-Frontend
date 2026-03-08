@@ -192,6 +192,22 @@ export default function Patients() {
       <ComponentHeader
         title="Listado de Pacientes"
         description="Gestiona la información clínica y el seguimiento de tus pacientes registrados en la plataforma."
+        actions={
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <IconUserPlus className="mr-2 h-4 w-4" />
+            Crear paciente
+          </Button>
+        }
+      />
+
+      <CreatePatientDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        createPatient={handleCreatePatient}
+        onSuccess={() => {
+          setCreateDialogOpen(false);
+          loadPatients();
+        }}
       />
 
       <ListToolbar
