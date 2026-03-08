@@ -36,7 +36,7 @@ export function NotaClinica({ note, className }: NotaClinicaProps) {
             {formatDate(note.date)}
           </span>
         </div>
-        <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">
+        <p className="mt-2 break-words whitespace-pre-wrap text-justify text-sm text-foreground">
           {note.note}
         </p>
       </div>

@@ -41,7 +41,7 @@ export function ClinicalNoteItem({
           <span className="font-semibold text-foreground">{doctorName}</span>
           <span className="text-sm text-muted-foreground">{date}</span>
         </div>
-        <p className="mt-1 text-sm text-foreground text-justify">{content}</p>
+        <p className="mt-1 break-words text-sm text-foreground text-justify">{content}</p>
       </div>
     </div>
   );

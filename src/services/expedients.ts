@@ -19,6 +19,18 @@ export async function createExpedient(
   return res.data;
 }
 
+export async function updateExpedient(
+  api: ApiClient,
+  expedientId: number,
+  payload: CreateRecordPayload
+): Promise<Record> {
+  const res = await api.put<Record>(`/expedients/${expedientId}`, payload);
+  if (res.error || res.data === null) {
+    throw new Error(res.message ?? "Error al actualizar el expediente");
+  }
+  return res.data;
+}
+
 export async function getExpedients(api: ApiClient): Promise<Record[]> {
   const res = await api.get<Record[]>("/expedients");
   if (res.error || res.data === null) {

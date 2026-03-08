@@ -7,27 +7,38 @@ export interface ApiClientOptions {
   onUnauthorized?: () => void;
 }
 
+function isFormData(value: unknown): value is FormData {
+  return typeof FormData !== "undefined" && value instanceof FormData;
+}
+
+type RequestOptions = RequestInit & { body?: object | FormData };
+
 function createApiClient(options: ApiClientOptions) {
   const { getToken, onUnauthorized } = options;
 
-  async function request<T>(
-    path: string,
-    init: RequestInit & { body?: object } = {}
-  ): Promise<ApiResponse<T>> {
+  async function request<T>(path: string, init: RequestOptions = {}): Promise<ApiResponse<T>> {
     const { body, ...rest } = init;
     const token = getToken();
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...rest.headers,
-    };
+    const headers: HeadersInit = { ...rest.headers };
     if (token) {
       (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
     }
+
+    let fetchBody: BodyInit | undefined;
+    if (body === undefined) {
+      fetchBody = undefined;
+    } else if (isFormData(body)) {
+      fetchBody = body;
+    } else {
+      (headers as Record<string, string>)["Content-Type"] = "application/json";
+      fetchBody = JSON.stringify(body);
+    }
+
     const res = await fetch(`${BASE_URL}${path}`, {
       ...rest,
       headers,
-      body: body ? JSON.stringify(body) : rest.body,
-    });
+      body: fetchBody,
+    } as RequestInit);
     const data = (await res.json().catch(() => ({}))) as ApiResponse<T>;
     if (res.status === 401 && onUnauthorized) {
       onUnauthorized();
@@ -37,13 +48,21 @@ function createApiClient(options: ApiClientOptions) {
 
   return {
     get: <T>(path: string, init?: RequestInit) =>
-      request<T>(path, { ...init, method: "GET" }),
-    post: <T>(path: string, body?: object, init?: RequestInit) =>
-      request<T>(path, { ...init, method: "POST", body }),
-    put: <T>(path: string, body?: object, init?: RequestInit) =>
-      request<T>(path, { ...init, method: "PUT", body }),
+      request<T>(path, { ...init, method: "GET" } as RequestOptions),
+    post: <T>(path: string, body?: object, init?: RequestInit) => {
+      const { body: _b, ...rest } = init ?? {};
+      return request<T>(path, { ...rest, method: "POST", body } as RequestOptions);
+    },
+    postFormData: <T>(path: string, formData: FormData, init?: RequestInit) => {
+      const { body: _b, ...rest } = init ?? {};
+      return request<T>(path, { ...rest, method: "POST", body: formData } as RequestOptions);
+    },
+    put: <T>(path: string, body?: object, init?: RequestInit) => {
+      const { body: _b, ...rest } = init ?? {};
+      return request<T>(path, { ...rest, method: "PUT", body } as RequestOptions);
+    },
     delete: <T>(path: string, init?: RequestInit) =>
-      request<T>(path, { ...init, method: "DELETE" }),
+      request<T>(path, { ...init, method: "DELETE" } as RequestOptions),
   };
 }
 

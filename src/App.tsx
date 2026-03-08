@@ -36,6 +36,7 @@ function App() {
           <Route path="records" element={<Outlet />}>
             <Route index element={<Records />} />
             <Route path="new" element={<CreateExpedient />} />
+            <Route path=":expedientId" element={<CreateExpedient />} />
           </Route>
           <Route path="users" element={<Users />} />
         </Route>

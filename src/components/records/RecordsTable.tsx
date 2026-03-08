@@ -47,25 +47,22 @@ export function RecordsTable({
         className
       )}
     >
-      <table className="w-full table-fixed text-left text-sm">
+      <table className="w-full table-auto text-left text-sm">
         <thead className="sticky top-0 z-10 border-b border-border bg-muted/50">
           <tr>
-            <th className="px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground w-[min(220px,28%)]">
+            <th className="min-w-[180px] px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground whitespace-nowrap">
               Paciente
             </th>
-            <th className="px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground w-[120px]">
+            <th className="min-w-[120px] px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground whitespace-nowrap">
               ID Expediente
             </th>
-            <th className="px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground w-[110px]">
+            <th className="min-w-[100px] px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground whitespace-nowrap">
               Apertura
             </th>
-            <th className="px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground w-[110px]">
+            <th className="min-w-[100px] px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground whitespace-nowrap">
               Última Act.
             </th>
-            <th className="px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground w-[100px]">
-              Estado
-            </th>
-            <th className="px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground w-[140px]">
+            <th className="min-w-[120px] px-4 py-3 font-medium uppercase tracking-wide text-muted-foreground whitespace-nowrap">
               Acciones
             </th>
           </tr>
@@ -73,13 +70,13 @@ export function RecordsTable({
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+              <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                 Cargando…
               </td>
             </tr>
           ) : records.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+              <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                 {emptyMessage}
               </td>
             </tr>
@@ -114,27 +111,23 @@ export function RecordsTable({
                   {formatDate(record.created_at)}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="inline-flex rounded-full bg-success px-2 py-0.5 text-xs font-medium text-success-foreground">
-                    Completo
-                  </span>
-                </td>
-                <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Link
                       to={`/patients/${record.patient_id}?tab=records`}
-                      className="text-sm font-medium text-primary hover:underline"
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label="Ver detalles"
+                      title="Ver detalles"
                     >
-                      Ver detalles
+                      <IconView className="h-4 w-4" />
                     </Link>
-                    <button
-                      type="button"
+                    <Link
+                      to={`/records/${record.id}`}
                       className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                       aria-label="Editar"
-                      title="Editar (próximamente)"
-                      disabled
+                      title="Editar expediente"
                     >
                       <IconPencil className="h-4 w-4" />
-                    </button>
+                    </Link>
                     <button
                       type="button"
                       className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -152,6 +145,23 @@ export function RecordsTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+function IconView({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
   );
 }
 

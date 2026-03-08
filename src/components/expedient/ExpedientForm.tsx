@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ComponentHeader } from "@/components/common/ComponentHeader";
 import { ExpedientStepper } from "./ExpedientStepper";
@@ -48,18 +48,30 @@ const defaultFormState: ExpedientFormState = {
 export interface ExpedientFormProps {
   patients: Patient[];
   patientName?: string;
+  /** Cuando se proporciona, el formulario se usa en modo edición (campos prellenados). */
+  initialState?: ExpedientFormState;
   onSubmit: (payload: ExpedientFormState) => Promise<void>;
+  /** Si se proporciona, se muestra el botón para iniciar grabación de sesión (solo en paso 1). */
+  onStartRecording?: (patientId: number) => Promise<void>;
 }
 
 export function ExpedientForm({
   patients,
   patientName,
+  initialState,
   onSubmit,
+  onStartRecording,
 }: ExpedientFormProps) {
-  const [state, setState] = useState<ExpedientFormState>(defaultFormState);
+  const [state, setState] = useState<ExpedientFormState>(
+    initialState ?? defaultFormState
+  );
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialState) setState(initialState);
+  }, [initialState]);
 
   const updateState = (update: Partial<ExpedientFormState>) => {
     setState((prev) => ({ ...prev, ...update }));
@@ -115,6 +127,7 @@ export function ExpedientForm({
             state={state}
             patients={patients}
             onChange={updateState}
+            onStartRecording={onStartRecording}
           />
         )}
         {currentStep === 2 && (

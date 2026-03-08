@@ -28,9 +28,9 @@ export function LastClinicalNotes({
   }
 
   return (
-    <section className={cn("space-y-4", className)}>
+    <section className={cn("min-w-0 space-y-4", className)}>
       <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-      <div className="relative">
+      <div className="relative min-w-0">
         <div
           className="absolute left-4 top-0 bottom-0 w-px bg-border"
           aria-hidden

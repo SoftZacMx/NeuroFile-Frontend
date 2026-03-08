@@ -48,12 +48,6 @@ export function RecordsFilterBar({
           Limpiar fechas
         </Button>
       )}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-muted-foreground">Terapeuta</Label>
-        <Button type="button" variant="outline" size="sm" disabled className="min-w-[140px]">
-          Todos
-        </Button>
-      </div>
     </div>
   );
 }

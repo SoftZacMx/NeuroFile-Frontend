@@ -83,8 +83,8 @@ export function AppointmentCalendar({
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="shrink-0 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Calendario</h2>
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -130,7 +130,7 @@ export function AppointmentCalendar({
         </div>
       </div>
 
-      <div className="min-h-[500px] rounded-md border border-border bg-card">
+      <div className="min-h-[400px] flex-1 overflow-auto rounded-md border border-border bg-card">
         <Calendar
           localizer={localizer}
           events={events}
