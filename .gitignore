@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Archivos grandes (GitHub límite 100 MB)
+*.dmg
