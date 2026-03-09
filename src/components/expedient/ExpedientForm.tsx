@@ -158,11 +158,11 @@ export function ExpedientForm({
           Anterior
         </Button>
         {currentStep < TOTAL_STEPS ? (
-          <Button type="button" onClick={handleNext} disabled={!canNext}>
+          <Button type="button" onClick={handleNext} disabled={!canNext} data-testid="expedient-next">
             Siguiente
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={submitting}>
+          <Button onClick={handleSubmit} disabled={submitting} data-testid="expedient-submit">
             {submitting ? "Guardando…" : "Guardar expediente"}
           </Button>
         )}

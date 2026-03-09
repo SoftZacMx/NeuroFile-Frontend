@@ -70,6 +70,7 @@ export function ReasonAndDemandStep({
                 type="button"
                 variant="outline"
                 onClick={() => setSelectDialogOpen(true)}
+                data-testid="expedient-select-patient"
               >
                 {selectedPatient ? "Cambiar" : "Seleccionar paciente"}
               </Button>
@@ -86,6 +87,7 @@ export function ReasonAndDemandStep({
               placeholder="Ej: Evaluación por cefaleas recurrentes"
               maxLength={EXPEDIENT_FIELD_MAX_LENGTH}
               required
+              data-testid="expedient-consultation-reason"
             />
           </div>
           <div className="space-y-2">
@@ -97,6 +99,7 @@ export function ReasonAndDemandStep({
               placeholder="Ej: Terapia cognitivo-conductual"
               maxLength={EXPEDIENT_FIELD_MAX_LENGTH}
               required
+              data-testid="expedient-treatment-demand"
             />
           </div>
         </CardContent>

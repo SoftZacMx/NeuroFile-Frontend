@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
-import { getDashboardStats } from "@/services/dashboard";
-import type { DashboardStats } from "@/types/dashboard";
+import { getDashboardStats, getDashboardAnalytics, type DashboardPeriod } from "@/services/dashboard";
+import type { DashboardStats, DashboardAnalytics } from "@/types/dashboard";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 function IconPatients({ className }: { className?: string }) {
   return (
@@ -63,11 +73,21 @@ function IconCalendarNext({ className }: { className?: string }) {
   );
 }
 
+const PERIOD_OPTIONS: { value: DashboardPeriod; label: string }[] = [
+  { value: 7, label: "7 días" },
+  { value: 30, label: "30 días" },
+  { value: 90, label: "90 días" },
+];
+
 export default function Dashboard() {
   const { user, api } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const [period, setPeriod] = useState<DashboardPeriod>(30);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -83,9 +103,30 @@ export default function Dashboard() {
     }
   }, [api]);
 
+  const loadAnalytics = useCallback(
+    async (p: DashboardPeriod) => {
+      setAnalyticsLoading(true);
+      setAnalyticsError(null);
+      try {
+        const data = await getDashboardAnalytics(api, p);
+        setAnalytics(data);
+      } catch (e) {
+        setAnalyticsError(e instanceof Error ? e.message : "Error al cargar analíticas");
+        setAnalytics(null);
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    },
+    [api]
+  );
+
   useEffect(() => {
     loadStats();
   }, [loadStats]);
+
+  useEffect(() => {
+    loadAnalytics(period);
+  }, [period, loadAnalytics]);
 
   return (
     <div className="p-6">
@@ -129,6 +170,104 @@ export default function Dashboard() {
             />
           </div>
         )}
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Analíticas por periodo</h2>
+          <div className="flex flex-wrap gap-2">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setPeriod(opt.value)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  period === opt.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {analyticsLoading && (
+            <p className="text-muted-foreground">Cargando analíticas…</p>
+          )}
+          {analyticsError && (
+            <p className="text-destructive">{analyticsError}</p>
+          )}
+          {!analyticsLoading && !analyticsError && analytics && (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Card className="rounded-lg shadow-sm">
+                <CardHeader className="pb-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    Citas por periodo
+                  </h3>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart
+                      data={analytics.appointmentsByPeriod}
+                      margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 12 }}
+                        className="text-muted-foreground"
+                      />
+                      <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                      <Tooltip
+                        contentStyle={{ borderRadius: "6px" }}
+                        formatter={(value: number) => [value, "Citas"]}
+                        labelFormatter={(label) => `Periodo: ${label}`}
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill="hsl(var(--primary))"
+                        radius={[4, 4, 0, 0]}
+                        name="Citas"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+              <Card className="rounded-lg shadow-sm">
+                <CardHeader className="pb-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    Notas clínicas por periodo
+                  </h3>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart
+                      data={analytics.clinicalNotesByPeriod}
+                      margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 12 }}
+                        className="text-muted-foreground"
+                      />
+                      <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                      <Tooltip
+                        contentStyle={{ borderRadius: "6px" }}
+                        formatter={(value: number) => [value, "Notas"]}
+                        labelFormatter={(label) => `Periodo: ${label}`}
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill="hsl(var(--chart-2, var(--primary)))"
+                        radius={[4, 4, 0, 0]}
+                        name="Notas"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );

@@ -57,6 +57,7 @@ export function PatientSelectListItem({
           variant="default"
           size="sm"
           onClick={() => onSelect(patient)}
+          data-testid="patient-select-btn"
         >
           Seleccionar
         </Button>

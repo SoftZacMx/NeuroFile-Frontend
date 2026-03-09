@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const MEDIA_MD = "(min-width: 768px)";
@@ -188,6 +189,7 @@ export function Sidebar() {
               {roleLabel}
             </span>
           </div>
+          <ThemeToggle iconOnly={isCollapsed} className={isCollapsed ? "" : "flex items-center"} />
           <button
             type="button"
             onClick={clearAuth}

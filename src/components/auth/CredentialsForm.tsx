@@ -78,6 +78,7 @@ export function CredentialsForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={errors.email ? "border-destructive" : ""}
+              data-testid="login-email"
             />
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email}</p>
@@ -107,6 +108,7 @@ export function CredentialsForm({
                   "pr-9",
                   errors.password ? "border-destructive" : ""
                 )}
+                data-testid="login-password"
               />
               <button
                 type="button"
@@ -137,7 +139,7 @@ export function CredentialsForm({
               </Label>
             </div>
           )}
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading} data-testid="login-submit">
             {loading ? "..." : submitLabel}
             <span className="ml-1" aria-hidden>→</span>
           </Button>

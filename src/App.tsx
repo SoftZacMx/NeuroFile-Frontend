@@ -1,5 +1,6 @@
 import { Toaster } from "sonner";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ConfirmDialogProvider } from "@/contexts/ConfirmDialogContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -15,8 +16,9 @@ import Records from "@/pages/Records";
 
 function App() {
   return (
-    <AuthProvider>
-      <ConfirmDialogProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ConfirmDialogProvider>
         <Toaster richColors position="top-center" />
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -42,8 +44,9 @@ function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      </ConfirmDialogProvider>
-    </AuthProvider>
+        </ConfirmDialogProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

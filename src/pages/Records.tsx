@@ -69,13 +69,13 @@ export default function Records() {
   }, []);
 
   return (
-    <div className="flex max-h-[100vh] flex-col gap-4 p-6">
+    <div className="flex max-h-[100vh] flex-col gap-4 p-6" data-testid="records-page">
       <ComponentHeader
         title="Listado de Expedientes"
         description="Gestión integral de la historia clínica de tus pacientes."
         actions={
           <Button asChild size="sm">
-            <Link to="/records/new">
+            <Link to="/records/new" data-testid="records-new-expedient-link">
               <IconPlus className="mr-2 h-4 w-4" />
               Nuevo expediente
             </Link>
