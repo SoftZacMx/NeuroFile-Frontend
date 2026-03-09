@@ -61,9 +61,9 @@ function IconExpediente({ className }: { className?: string }) {
 function LogoIcon({ className }: { className?: string }) {
   return (
     <img
-      src="/LogoPng.png"
+      src="/Logo2.jpg"
       alt="NeuroFile"
-      className={cn("shrink-0 object-contain", className)}
+      className={cn("shrink-0 object-contain shadow-md rounded-lg", className)}
     />
   );
 }
