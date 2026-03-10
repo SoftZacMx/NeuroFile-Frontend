@@ -171,10 +171,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className={cn("border-t border-border", isCollapsed ? "p-2" : "p-4")}>
+      <div className={cn("border-t border-border", isCollapsed ? "p-2" : "p-2")}>
         <div
           className={cn(
-            "flex items-center gap-3",
+            "flex items-center gap-2",
             isCollapsed && "flex-col justify-center gap-2"
           )}
         >
@@ -189,7 +189,7 @@ export function Sidebar() {
               {roleLabel}
             </span>
           </div>
-          <ThemeToggle iconOnly={isCollapsed} className={isCollapsed ? "" : "flex items-center"} />
+          <ThemeToggle iconOnly className="shrink-0" />
           <button
             type="button"
             onClick={clearAuth}
