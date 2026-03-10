@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ComponentHeader } from "@/components/common/ComponentHeader";
 import { ListToolbar, type StatusFilterValue } from "@/components/common/ListToolbar";
 import { DataList } from "@/components/common/DataList";
 import { PatientSelectListItem } from "./PatientSelectListItem";

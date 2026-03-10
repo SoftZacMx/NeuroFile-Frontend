@@ -18,10 +18,10 @@ import { CreatePatientDialog } from "@/components/patient/CreatePatientDialog";
 import { PacientesEmptyState } from "@/components/empty-state/PacientesEmptyState";
 import { Button } from "@/components/ui/button";
 
-function IconUserPlus() {
+function IconUserPlus({ className }: { className?: string }) {
   return (
     <svg
-      className="h-4 w-4"
+      className={className ?? "h-4 w-4"}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

@@ -60,8 +60,6 @@ export default function Records() {
     return filteredRecords.slice(start, start + PAGE_SIZE);
   }, [filteredRecords, page]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE));
-
   const handleResetDates = useCallback(() => {
     setDateFrom(oneMonthAgoISO());
     setDateTo(todayISO());

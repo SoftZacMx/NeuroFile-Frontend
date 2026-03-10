@@ -1,4 +1,3 @@
-import type { ApiResponse } from "@/types/api";
 import type { LoginResponse, User } from "@/types/auth";
 import type { ApiClient } from "@/lib/api-client";
 

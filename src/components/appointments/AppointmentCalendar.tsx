@@ -1,10 +1,7 @@
 import { useMemo, useState } from "react";
-import { Calendar, dateFnsLocalizer } from "react-big-calendar";
-import format from "date-fns/format";
-import parse from "date-fns/parse";
-import startOfWeek from "date-fns/startOfWeek";
-import getDay from "date-fns/getDay";
-import es from "date-fns/locale/es";
+import { Calendar, dateFnsLocalizer, type View } from "react-big-calendar";
+import { format, parse, startOfWeek, getDay } from "date-fns";
+import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Appointment } from "@/types/appointment";
@@ -45,7 +42,7 @@ export function AppointmentCalendar({
   onSelectAppointment,
   onNewAppointment,
 }: AppointmentCalendarProps) {
-  const [view, setView] = useState<"month" | "week" | "day" | "agenda">("week");
+  const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(new Date());
 
   const events: BigCalendarEvent[] = useMemo(

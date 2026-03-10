@@ -43,7 +43,7 @@ export function AppointmentFormDialog({
   open,
   onOpenChange,
   mode,
-  patientId,
+  patientId: _patientId,
   appointment,
   onSubmit,
 }: AppointmentFormDialogProps) {

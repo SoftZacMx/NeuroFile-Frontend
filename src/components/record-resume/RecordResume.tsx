@@ -204,7 +204,7 @@ export function RecordResume({
         <RecordSection number={5} title="Plan terapéutico">
           {record.therapeutic_focus && (
             <RecordSubSection label="Enfoque terapéutico">
-              <RecordCard title={record.therapeutic_focus} />
+              <RecordCard title={record.therapeutic_focus}>{record.therapeutic_focus}</RecordCard>
             </RecordSubSection>
           )}
           {record.therapeutic_goal && (
