@@ -1,27 +1,8 @@
 import { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { CredentialsForm } from "@/components/auth/CredentialsForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { login } from "@/services/auth";
-
-function NeuroFileLogo() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="h-8 w-8"
-      aria-hidden
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-      />
-    </svg>
-  );
-}
 
 export default function Login() {
   const { user, setAuth, api } = useAuth();
@@ -29,16 +10,14 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      const path = user.role === "admin" ? "/dashboard" : "/dashboard";
-      navigate(path, { replace: true });
+      navigate("/dashboard", { replace: true });
     }
   }, [user, navigate]);
 
   const handleSubmit = async (values: { email: string; password: string }) => {
     const data = await login(api, values.email, values.password);
     setAuth(data);
-    const path = data.user.role === "admin" ? "/dashboard" : "/dashboard";
-    navigate(path, { replace: true });
+    navigate("/dashboard", { replace: true });
   };
 
   const handleForgotPassword = () => {
@@ -46,35 +25,49 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/30">
-      <div className="flex flex-col items-center gap-4 mb-6">
-        <NeuroFileLogo />
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-foreground">NeuroFile</h2>
-          <p className="text-sm text-muted-foreground">
-            SaaS de Gestión Médica Especializada
-          </p>
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
+      {/* Columna izquierda: logo y texto */}
+      <div className="bg-muted/40 flex flex-col items-center justify-center p-8 md:p-12">
+        <img
+          src="/NeuroFileLogo.png"
+          alt="NeuroFile"
+          className="w-32 h-32 md:w-80 md:h-80 object-contain mb-6"
+        />
+        <h2 className="text-xl md:text-2xl font-bold text-foreground text-center">
+          Plataforma Integral De Gestión Clínica
+        </h2>
+        <p className="text-sm text-muted-foreground text-center mt-2 max-w-sm">
+          Eficiencia y precisión en la gestión de expedientes clínicos.
+        </p>
+      </div>
+
+      {/* Columna derecha: formulario */}
+      <div className="bg-background flex flex-col justify-center p-6 md:p-12 lg:p-16">
+        <div className="w-full max-w-sm mx-auto">
+          <CredentialsForm
+            noCard
+            title="Iniciar Sesión"
+            description="Bienvenido de nuevo a NeuroFile"
+            emailLabel="Correo Electrónico"
+            emailPlaceholder="ejemplo@clinica.com"
+            passwordLabel="Contraseña"
+            submitLabel="Acceder al Sistema"
+            showForgotPasswordLink
+            onForgotPassword={handleForgotPassword}
+            showKeepLoggedIn
+            keepLoggedInLabel="Mantener sesión iniciada"
+            footer={
+              <>
+                ¿No tienes cuenta?{" "}
+                <a href="#" className="text-primary hover:underline">
+                  Contacta a soporte
+                </a>
+              </>
+            }
+            onSubmit={handleSubmit}
+          />
         </div>
       </div>
-      <CredentialsForm
-        title="Iniciar sesión"
-        description="Ingrese sus credenciales para acceder al panel"
-        emailPlaceholder="doctor@neurofile.com"
-        submitLabel="Acceder al Sistema"
-        showForgotPasswordLink
-        onForgotPassword={handleForgotPassword}
-        showKeepLoggedIn
-        keepLoggedInLabel="Mantener sesión iniciada"
-        footer={
-          <>
-            ¿No tiene una cuenta?{" "}
-            <Link to="/auth/register" className="text-primary hover:underline">
-              Crear cuenta
-            </Link>
-          </>
-        }
-        onSubmit={handleSubmit}
-      />
     </div>
   );
 }

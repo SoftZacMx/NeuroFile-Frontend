@@ -22,6 +22,8 @@ export interface CredentialsFormProps extends UseCredentialsFormOptions {
   logo?: React.ReactNode;
   /** Footer content (e.g. "¿No tiene cuenta? Contacte con soporte") */
   footer?: React.ReactNode;
+  /** Si true, no usa Card (para layout de dos columnas) */
+  noCard?: boolean;
   className?: string;
 }
 
@@ -38,6 +40,7 @@ export function CredentialsForm({
   keepLoggedInLabel = "Mantener sesión iniciada",
   logo,
   footer,
+  noCard = false,
   className,
   ...hookOptions
 }: CredentialsFormProps) {
@@ -55,31 +58,40 @@ export function CredentialsForm({
     handleSubmit,
   } = useCredentialsForm(hookOptions);
 
+  const Wrapper = noCard ? "div" : Card;
+  const Header = noCard ? "div" : CardHeader;
+  const Content = noCard ? "div" : CardContent;
+
   return (
-    <Card className={cn("w-full max-w-md", className)}>
-      <CardHeader className="flex flex-col items-center gap-2 text-center">
-        {logo && (
+    <Wrapper className={cn(noCard ? "w-full max-w-sm" : "w-full max-w-md", className)}>
+      <Header className={cn(noCard ? "flex flex-col gap-1 text-left pb-6" : "flex flex-col items-center gap-2 text-center")}>
+        {logo && !noCard && (
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
             {logo}
           </div>
         )}
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <h1 className={cn("font-bold tracking-tight", noCard ? "text-2xl text-foreground" : "text-2xl")}>{title}</h1>
         <p className="text-sm text-muted-foreground">{description}</p>
-      </CardHeader>
-      <CardContent>
+      </Header>
+      <Content className={cn(noCard && "p-0")}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="space-y-2">
             <Label htmlFor="credentials-email">{emailLabel}</Label>
-            <Input
-              id="credentials-email"
-              type="email"
-              autoComplete="email"
-              placeholder={emailPlaceholder}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={errors.email ? "border-destructive" : ""}
-              data-testid="login-email"
-            />
+            <div className="relative">
+              {noCard && (
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+              )}
+              <Input
+                id="credentials-email"
+                type="email"
+                autoComplete="email"
+                placeholder={emailPlaceholder}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={cn(errors.email ? "border-destructive" : "", noCard && "pl-9")}
+                data-testid="login-email"
+              />
+            </div>
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email}</p>
             )}
@@ -93,11 +105,16 @@ export function CredentialsForm({
                   onClick={onForgotPassword}
                   className="text-xs text-primary hover:underline"
                 >
-                  ¿Olvidó su contraseña?
+                  ¿Olvidaste tu contraseña?
                 </button>
               )}
             </div>
             <div className="relative">
+              {noCard && (
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </span>
+              )}
               <Input
                 id="credentials-password"
                 type={showPassword ? "text" : "password"}
@@ -106,7 +123,8 @@ export function CredentialsForm({
                 onChange={(e) => setPassword(e.target.value)}
                 className={cn(
                   "pr-9",
-                  errors.password ? "border-destructive" : ""
+                  errors.password ? "border-destructive" : "",
+                  noCard && "pl-9"
                 )}
                 data-testid="login-password"
               />
@@ -145,11 +163,11 @@ export function CredentialsForm({
           </Button>
         </form>
         {footer && (
-          <p className="mt-4 text-center text-sm text-muted-foreground">
+          <p className={cn("mt-4 text-sm text-muted-foreground", noCard ? "text-left" : "text-center")}>
             {footer}
           </p>
         )}
-      </CardContent>
-    </Card>
+      </Content>
+    </Wrapper>
   );
 }
