@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/contexts/ConfirmDialogContext";
 import {
@@ -29,9 +29,7 @@ function patientFullName(p: Patient): string {
     .join(" ");
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+const APPOINTMENT_MARGIN_MS = 30 * 60 * 1000;
 
 export function AppointmentsView({
   patient,
@@ -49,14 +47,13 @@ export function AppointmentsView({
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingAppointment, setEditingAppointment] =
     useState<Appointment | null>(null);
-  const [dateFrom, setDateFrom] = useState<string>(() => todayISO());
-  const [dateTo, setDateTo] = useState<string>(() => todayISO());
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   const loadAppointments = useCallback(async () => {
     setLoading(true);
     try {
       const list = await getAppointments(api, {
-        patientId: patient.id,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
       });
@@ -66,14 +63,21 @@ export function AppointmentsView({
     } finally {
       setLoading(false);
     }
-  }, [api, patient.id, dateFrom, dateTo]);
+  }, [api, dateFrom, dateTo]);
 
   useEffect(() => {
     loadAppointments();
   }, [loadAppointments, refreshTrigger]);
 
   const selectedAppointment =
-    appointments.find((a) => a.id === selectedAppointmentId) ?? null;
+    appointments.find(
+      (a) => a.id === selectedAppointmentId && a.patientId === patient.id
+    ) ?? null;
+
+  const patientSpecificAppointments = useMemo(
+    () => appointments.filter((a) => a.patientId === patient.id),
+    [appointments, patient.id]
+  );
 
   const handleNewAppointment = () => {
     setFormMode("create");
@@ -82,6 +86,7 @@ export function AppointmentsView({
   };
 
   const handleEdit = (appointment: Appointment) => {
+    if (appointment.patientId !== patient.id) return;
     setFormMode("edit");
     setEditingAppointment(appointment);
     setFormOpen(true);
@@ -89,6 +94,7 @@ export function AppointmentsView({
 
   const handleDelete = useCallback(
     async (appointment: Appointment) => {
+      if (appointment.patientId !== patient.id) return;
       const ok = await confirmDialog({
         title: "Confirmar eliminación",
         message: "¿Eliminar esta cita?",
@@ -104,10 +110,10 @@ export function AppointmentsView({
         );
         await loadAppointments();
       } catch {
-        // could toast error
+        // Error toast
       }
     },
-    [api, confirmDialog, loadAppointments]
+    [api, confirmDialog, loadAppointments, patient.id]
   );
 
   const handleFormSubmit = useCallback(
@@ -116,31 +122,92 @@ export function AppointmentsView({
       status?: boolean;
       attended?: boolean;
     }) => {
-      if (formMode === "create") {
-        await createAppointment(api, {
-          ...payload,
-          patientId: patient.id,
+      const payloadDateStr = payload.date.slice(0, 10);
+
+      if (payload.status !== false) {
+        const newAppointmentTime = new Date(payload.date).getTime();
+
+        const hasConflict = appointments.some((app) => {
+          if (
+            formMode === "edit" &&
+            editingAppointment &&
+            app.id === editingAppointment.id
+          ) {
+            return false;
+          }
+          if (app.status === false) return false;
+
+          const existingAppointmentTime = new Date(app.date).getTime();
+          const timeDifference = Math.abs(
+            newAppointmentTime - existingAppointmentTime
+          );
+          return timeDifference < APPOINTMENT_MARGIN_MS;
         });
-      } else if (editingAppointment) {
-        await updateAppointment(api, editingAppointment.id, payload);
+
+        if (hasConflict) {
+          await confirmDialog({
+            title: "Horario no disponible",
+            message:
+              "Ya existe una cita agendada o un espacio ocupado en este horario. Por favor, selecciona una hora con al menos 30 minutos de diferencia.",
+            confirmLabel: "Entendido",
+            cancelLabel: "",
+            variant: "default",
+          });
+          return;
+        }
       }
-      await loadAppointments();
+
+      try {
+        if (formMode === "create") {
+          await createAppointment(api, {
+            ...payload,
+            patientId: patient.id,
+          });
+
+          if (dateFrom && payloadDateStr < dateFrom) setDateFrom(payloadDateStr);
+          if (dateTo && payloadDateStr > dateTo) setDateTo(payloadDateStr);
+        } else if (editingAppointment) {
+          await updateAppointment(api, editingAppointment.id, payload);
+
+          if (dateFrom && payloadDateStr < dateFrom) setDateFrom(payloadDateStr);
+          if (dateTo && payloadDateStr > dateTo) setDateTo(payloadDateStr);
+        }
+
+        await loadAppointments();
+      } catch {
+        // Error toast
+      }
     },
-    [api, formMode, editingAppointment, patient.id, loadAppointments]
+    [
+      api,
+      formMode,
+      editingAppointment,
+      patient.id,
+      loadAppointments,
+      appointments,
+      dateFrom,
+      dateTo,
+      confirmDialog,
+    ]
   );
 
   return (
-    <div className={`flex max-h-[100vh] flex-col overflow-hidden ${className ?? ""}`.trim()}>
+    <div
+      className={`flex max-h-[100vh] flex-col overflow-hidden ${className ?? ""}`.trim()}
+    >
       {loading ? (
-        <p className="text-sm text-muted-foreground">Cargando citas…</p>
+        <p className="text-sm text-muted-foreground">Cargando agenda global…</p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-auto">
-          <div className="shrink-0 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-muted/30 px-4 py-3 shadow-sm">
+          <div className="flex shrink-0 flex-wrap items-end gap-4 rounded-lg border border-border bg-muted/30 px-4 py-3 shadow-sm">
             <h3 className="w-full text-sm font-semibold text-foreground sm:w-auto">
-              Filtrar por fecha
+              Rango de disponibilidad
             </h3>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="appointment-date-from" className="text-xs text-muted-foreground">
+              <Label
+                htmlFor="appointment-date-from"
+                className="text-xs text-muted-foreground"
+              >
                 Desde
               </Label>
               <Input
@@ -152,7 +219,10 @@ export function AppointmentsView({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="appointment-date-to" className="text-xs text-muted-foreground">
+              <Label
+                htmlFor="appointment-date-to"
+                className="text-xs text-muted-foreground"
+              >
                 Hasta
               </Label>
               <Input
@@ -166,7 +236,7 @@ export function AppointmentsView({
             {(dateFrom || dateTo) && (
               <>
                 <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
-                  {appointments.length} citas
+                  {appointments.length} espacios ocupados en total
                 </span>
                 <button
                   type="button"
@@ -181,15 +251,18 @@ export function AppointmentsView({
               </>
             )}
           </div>
+
           <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[1fr_280px]">
             <AppointmentCalendar
               appointments={appointments}
               selectedAppointmentId={selectedAppointmentId}
+              currentPatientId={patient.id}
               onSelectAppointment={(a) =>
                 setSelectedAppointmentId(a ? a.id : null)
               }
               onNewAppointment={handleNewAppointment}
             />
+
             <div className="min-h-0 space-y-6 overflow-auto lg:min-w-0">
               <AppointmentDetail
                 appointment={selectedAppointment}
@@ -200,7 +273,7 @@ export function AppointmentsView({
                 onStartConsultation={undefined}
               />
               <AppointmentList
-                appointments={appointments}
+                appointments={patientSpecificAppointments}
                 selectedAppointmentId={selectedAppointmentId}
                 onSelectAppointment={(a) => setSelectedAppointmentId(a.id)}
               />
