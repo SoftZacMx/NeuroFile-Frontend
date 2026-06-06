@@ -12,16 +12,27 @@ import type { LoginResponse, User } from "@/types/auth";
 
 const STORAGE_KEY = "neurofile_auth";
 
-function loadStored(): { token: string; user: User } | null {
+function parseStored(raw: string | null): { token: string; user: User } | null {
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
     const data = JSON.parse(raw) as LoginResponse;
     if (data?.token && data?.user) return { token: data.token, user: data.user };
   } catch {
     /* ignore */
   }
   return null;
+}
+
+function loadStored(): { token: string; user: User } | null {
+  return (
+    parseStored(sessionStorage.getItem(STORAGE_KEY)) ??
+    parseStored(localStorage.getItem(STORAGE_KEY))
+  );
+}
+
+function clearStoredAuth(): void {
+  sessionStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 interface AuthState {
@@ -31,7 +42,7 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  setAuth: (data: LoginResponse) => void;
+  setAuth: (data: LoginResponse, keepLoggedIn?: boolean) => void;
   clearAuth: () => void;
   api: ApiClient;
 }
@@ -52,13 +63,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   stateRef.current = state;
 
   const clearAuth = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    clearStoredAuth();
     setState((s) => ({ ...s, token: null, user: null }));
     navigate("/login", { replace: true });
   }, [navigate]);
 
-  const setAuth = useCallback((data: LoginResponse) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  const setAuth = useCallback((data: LoginResponse, keepLoggedIn = false) => {
+    const serialized = JSON.stringify(data);
+    if (keepLoggedIn) {
+      localStorage.setItem(STORAGE_KEY, serialized);
+      sessionStorage.removeItem(STORAGE_KEY);
+    } else {
+      sessionStorage.setItem(STORAGE_KEY, serialized);
+      localStorage.removeItem(STORAGE_KEY);
+    }
     setState({
       token: data.token,
       user: data.user,
