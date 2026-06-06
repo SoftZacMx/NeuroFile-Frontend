@@ -258,7 +258,7 @@ export function CreatePatientDialog({
 
                 <div className="space-y-3">
                   <SectionHeader
-                    title="Datos médicos iniciales"
+                    title="Información adicional"
                     icon={<IconBriefcase />}
                   />
                   <div className="space-y-2">
@@ -291,11 +291,6 @@ export function CreatePatientDialog({
                   {saving ? "Guardando…" : "Crear paciente"}
                 </Button>
               </DialogFooter>
-
-              <p className="px-6 pb-6 text-xs text-muted-foreground">
-                Los datos son almacenados siguiendo los protocolos de seguridad
-                RGPD y encriptación de grado médico.
-              </p>
             </form>
           </DialogContent>
         </DialogOverlay>

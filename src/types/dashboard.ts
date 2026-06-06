@@ -4,12 +4,11 @@ export interface DashboardStats {
   appointmentsNextDay: number;
 }
 
-export interface DashboardAnalyticsBucket {
-  label: string;
-  value: number;
-}
-
-export interface DashboardAnalytics {
-  appointmentsByPeriod: DashboardAnalyticsBucket[];
-  clinicalNotesByPeriod: DashboardAnalyticsBucket[];
+export interface DashboardTodayAppointment {
+  id: number;
+  date: string;
+  status: boolean;
+  attended: boolean | null;
+  patientId: number;
+  patientName: string;
 }
