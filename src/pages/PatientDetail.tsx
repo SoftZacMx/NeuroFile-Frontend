@@ -63,6 +63,7 @@ export default function PatientDetail() {
   const [refreshAppointmentsKey, setRefreshAppointmentsKey] = useState(0);
   const [summary, setSummary] = useState<PatientSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryRefreshing, setSummaryRefreshing] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [autoOpenAppointmentCreate, setAutoOpenAppointmentCreate] = useState(false);
 
@@ -84,18 +85,25 @@ export default function PatientDetail() {
     loadPatient();
   }, [loadPatient]);
 
-  const loadSummary = useCallback(async () => {
+  const loadSummary = useCallback(async (isRefresh = false) => {
     if (!patientId) return;
-    setSummaryLoading(true);
+    if (isRefresh) {
+      setSummaryRefreshing(true);
+    } else {
+      setSummaryLoading(true);
+    }
     setSummaryError(null);
     try {
       const data = await getPatientSummary(api, patientId);
       setSummary(data);
     } catch (e) {
       setSummaryError(e instanceof Error ? e.message : "Error al cargar el resumen");
-      setSummary(null);
+      if (!isRefresh) {
+        setSummary(null);
+      }
     } finally {
       setSummaryLoading(false);
+      setSummaryRefreshing(false);
     }
   }, [api, patientId]);
 
@@ -226,8 +234,10 @@ export default function PatientDetail() {
             <SummaryTab
               summary={summary}
               summaryLoading={summaryLoading}
+              summaryRefreshing={summaryRefreshing}
               summaryError={summaryError}
-              onRefresh={loadSummary}
+              onRefresh={() => loadSummary(true)}
+              onNavigateToTab={navigateToTab}
             />
           )}
           {activeTabId === "appointments" && (

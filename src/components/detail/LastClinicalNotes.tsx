@@ -11,17 +11,26 @@ export interface LastClinicalNotesProps {
   notes: ClinicalNote[];
   title?: string;
   className?: string;
+  headerAction?: React.ReactNode;
 }
 
 export function LastClinicalNotes({
   notes,
   title = "Notas Clínicas",
   className,
+  headerAction,
 }: LastClinicalNotesProps) {
+  const header = (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      {headerAction}
+    </div>
+  );
+
   if (notes.length === 0) {
     return (
       <section className={cn("space-y-4", className)}>
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        {header}
         <p className="text-sm text-muted-foreground">No hay notas clínicas.</p>
       </section>
     );
@@ -29,7 +38,7 @@ export function LastClinicalNotes({
 
   return (
     <section className={cn("min-w-0 space-y-4", className)}>
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      {header}
       <div className="relative min-w-0">
         <div
           className="absolute left-4 top-0 bottom-0 w-px bg-border"

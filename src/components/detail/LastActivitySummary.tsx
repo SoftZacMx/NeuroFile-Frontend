@@ -11,6 +11,7 @@ export interface LastActivitySummaryProps {
   /** Icono opcional; si no se pasa, se usa el de calendario por defecto */
   icon?: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
 function IconCalendar({ className }: { className?: string }) {
@@ -38,23 +39,47 @@ export function LastActivitySummary({
   dateTime,
   icon,
   className,
+  onClick,
 }: LastActivitySummaryProps) {
+  const content = (
+    <>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center text-primary">
+            {icon ?? <IconCalendar className="h-5 w-5" />}
+          </span>
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {categoryLabel}
+          </span>
+        </div>
+        <p className="font-semibold text-foreground">{title}</p>
+        <p className="text-sm text-muted-foreground">{dateTime}</p>
+      </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <Card
+        className={cn(
+          "rounded-lg shadow-sm transition-colors hover:bg-muted/30",
+          className
+        )}
+      >
+        <button
+          type="button"
+          onClick={onClick}
+          className="w-full rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <CardContent className="p-4">{content}</CardContent>
+        </button>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn("rounded-lg shadow-sm", className)}>
-      <CardContent className="p-4">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center text-primary">
-              {icon ?? <IconCalendar className="h-5 w-5" />}
-            </span>
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {categoryLabel}
-            </span>
-          </div>
-          <p className="font-semibold text-foreground">{title}</p>
-          <p className="text-sm text-muted-foreground">{dateTime}</p>
-        </div>
-      </CardContent>
+      <CardContent className="p-4">{content}</CardContent>
     </Card>
   );
 }

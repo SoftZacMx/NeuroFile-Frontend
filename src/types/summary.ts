@@ -17,6 +17,7 @@ export interface SummaryClinicalNote {
 
 /** Patient summary from GET /patients/:id/summary */
 export interface PatientSummary {
+  nextAppointment: SummaryAppointment | null;
   lastAppointment: SummaryAppointment | null;
   lastNote: SummaryClinicalNote | null;
   last4ClinicalNotes: SummaryClinicalNote[];
