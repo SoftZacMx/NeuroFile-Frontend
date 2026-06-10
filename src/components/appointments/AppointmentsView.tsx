@@ -20,6 +20,9 @@ export interface AppointmentsViewProps {
   patient: Patient;
   /** When this value changes, appointments are refetched (e.g. after creating a clinical note). */
   refreshTrigger?: number;
+  /** Opens the create-appointment dialog when true (e.g. from patient detail sidebar). */
+  autoOpenCreate?: boolean;
+  onAutoOpenCreateHandled?: () => void;
   className?: string;
 }
 
@@ -36,6 +39,8 @@ function todayISO(): string {
 export function AppointmentsView({
   patient,
   refreshTrigger,
+  autoOpenCreate = false,
+  onAutoOpenCreateHandled,
   className,
 }: AppointmentsViewProps) {
   const { api } = useAuth();
@@ -71,6 +76,14 @@ export function AppointmentsView({
   useEffect(() => {
     loadAppointments();
   }, [loadAppointments, refreshTrigger]);
+
+  useEffect(() => {
+    if (!autoOpenCreate) return;
+    setFormMode("create");
+    setEditingAppointment(null);
+    setFormOpen(true);
+    onAutoOpenCreateHandled?.();
+  }, [autoOpenCreate, onAutoOpenCreateHandled]);
 
   const selectedAppointment =
     appointments.find((a) => a.id === selectedAppointmentId) ?? null;

@@ -8,6 +8,7 @@ import type { PatientSummary } from "@/types/summary";
 import type { Record } from "@/types/expedient";
 import type { ContactItem } from "@/components/detail/GeneralInfoCard";
 import { GeneralInfoCard } from "@/components/detail/GeneralInfoCard";
+import { PatientDetailSkeleton } from "@/components/detail/PatientDetailSkeleton";
 import { DetailContentTabs } from "@/components/detail/DetailContentTabs";
 import { SummaryTab } from "@/components/detail/SummaryTab";
 import { RecordResume } from "@/components/record-resume/RecordResume";
@@ -25,11 +26,13 @@ const TABS = [
 
 function patientToContactItems(patient: Patient): ContactItem[] {
   const items: ContactItem[] = [
-    { type: "phone", label: "Teléfono", value: patient.phone },
-    { type: "other", label: "Ocupación", value: patient.occupation },
+    { type: "phone", label: "Teléfono", value: patient.phone || "—" },
   ];
-  if (patient.address) {
-    items.push({ type: "address", label: "Dirección", value: patient.address });
+  if (patient.occupation?.trim()) {
+    items.push({ type: "other", label: "Ocupación", value: patient.occupation.trim() });
+  }
+  if (patient.address?.trim()) {
+    items.push({ type: "address", label: "Dirección", value: patient.address.trim() });
   }
   return items;
 }
@@ -61,6 +64,7 @@ export default function PatientDetail() {
   const [summary, setSummary] = useState<PatientSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [autoOpenAppointmentCreate, setAutoOpenAppointmentCreate] = useState(false);
 
   const loadPatient = useCallback(async () => {
     if (!patientId) return;
@@ -114,10 +118,40 @@ export default function PatientDetail() {
   }, [api]);
 
   useEffect(() => {
+    if (tabFromUrl && !isValidTabId(tabFromUrl)) {
+      setActiveTabId(TABS[0].id);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("tab");
+          return next;
+        },
+        { replace: true }
+      );
+      return;
+    }
     if (isValidTabId(tabFromUrl ?? "") && tabFromUrl !== activeTabId) {
       setActiveTabId(tabFromUrl as (typeof TABS)[number]["id"]);
     }
-  }, [tabFromUrl]);
+  }, [tabFromUrl, activeTabId, setSearchParams]);
+
+  const navigateToTab = useCallback(
+    (tabId: (typeof TABS)[number]["id"]) => {
+      setActiveTabId(tabId);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (tabId === TABS[0].id) next.delete("tab");
+        else next.set("tab", tabId);
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
+  const handleNewAppointment = useCallback(() => {
+    navigateToTab("appointments");
+    setAutoOpenAppointmentCreate(true);
+  }, [navigateToTab]);
 
   useEffect(() => {
     if ((activeTabId === "records" || activeTabId === "notes") && patient?.id) {
@@ -131,11 +165,7 @@ export default function PatientDetail() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center p-6">
-        <p className="text-muted-foreground">Cargando paciente...</p>
-      </div>
-    );
+    return <PatientDetailSkeleton />;
   }
 
   if (error || !patient) {
@@ -160,7 +190,12 @@ export default function PatientDetail() {
           <span className="text-foreground">{patientFullName(patient)}</span>
         </div>
         <div className="flex gap-2 lg:flex-col">
-          <Button variant="outline" size="sm" className="flex-1 lg:flex-none">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 lg:flex-none"
+            onClick={handleNewAppointment}
+          >
             Nueva Cita
           </Button>
           <Button
@@ -184,14 +219,7 @@ export default function PatientDetail() {
           tabs={[...TABS]}
           activeTabId={activeTabId}
           onTabChange={(tabId) => {
-            const id = tabId as (typeof TABS)[number]["id"];
-            setActiveTabId(id);
-            setSearchParams((prev) => {
-              const next = new URLSearchParams(prev);
-              if (id === TABS[0].id) next.delete("tab");
-              else next.set("tab", id);
-              return next;
-            });
+            navigateToTab(tabId as (typeof TABS)[number]["id"]);
           }}
         >
           {activeTabId === "summary" && (
@@ -206,6 +234,8 @@ export default function PatientDetail() {
             <AppointmentsView
               patient={patient}
               refreshTrigger={refreshAppointmentsKey}
+              autoOpenCreate={autoOpenAppointmentCreate}
+              onAutoOpenCreateHandled={() => setAutoOpenAppointmentCreate(false)}
             />
           )}
           {activeTabId === "records" && (
