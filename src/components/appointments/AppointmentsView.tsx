@@ -9,8 +9,7 @@ import {
 } from "@/services/appointments";
 import type { Appointment } from "@/types/appointment";
 import type { Patient } from "@/types/patient";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { AppointmentCalendar } from "./AppointmentCalendar";
 import { AppointmentDetail } from "./AppointmentDetail";
 import { AppointmentList } from "./AppointmentList";
@@ -32,10 +31,6 @@ function patientFullName(p: Patient): string {
     .join(" ");
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function AppointmentsView({
   patient,
   refreshTrigger,
@@ -47,6 +42,7 @@ export function AppointmentsView({
   const confirmDialog = useConfirmDialog();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<
     number | null
   >(null);
@@ -54,24 +50,22 @@ export function AppointmentsView({
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingAppointment, setEditingAppointment] =
     useState<Appointment | null>(null);
-  const [dateFrom, setDateFrom] = useState<string>(() => todayISO());
-  const [dateTo, setDateTo] = useState<string>(() => todayISO());
 
   const loadAppointments = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const list = await getAppointments(api, {
-        patientId: patient.id,
-        dateFrom: dateFrom || undefined,
-        dateTo: dateTo || undefined,
-      });
+      const list = await getAppointments(api, { patientId: patient.id });
       setAppointments(list);
-    } catch {
+    } catch (e) {
       setAppointments([]);
+      setError(
+        e instanceof Error ? e.message : "Error al cargar las citas del paciente"
+      );
     } finally {
       setLoading(false);
     }
-  }, [api, patient.id, dateFrom, dateTo]);
+  }, [api, patient.id]);
 
   useEffect(() => {
     loadAppointments();
@@ -142,85 +136,59 @@ export function AppointmentsView({
     [api, formMode, editingAppointment, patient.id, loadAppointments]
   );
 
-  return (
-    <div className={`flex max-h-[100vh] flex-col overflow-hidden ${className ?? ""}`.trim()}>
-      {loading ? (
+  if (loading) {
+    return (
+      <div className={`flex flex-col ${className ?? ""}`.trim()}>
         <p className="text-sm text-muted-foreground">Cargando citas…</p>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-auto">
-          <div className="shrink-0 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-muted/30 px-4 py-3 shadow-sm">
-            <h3 className="w-full text-sm font-semibold text-foreground sm:w-auto">
-              Filtrar por fecha
-            </h3>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="appointment-date-from" className="text-xs text-muted-foreground">
-                Desde
-              </Label>
-              <Input
-                id="appointment-date-from"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full min-w-[140px]"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="appointment-date-to" className="text-xs text-muted-foreground">
-                Hasta
-              </Label>
-              <Input
-                id="appointment-date-to"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full min-w-[140px]"
-              />
-            </div>
-            {(dateFrom || dateTo) && (
-              <>
-                <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
-                  {appointments.length} citas
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDateFrom("");
-                    setDateTo("");
-                  }}
-                  className="text-sm text-muted-foreground underline hover:text-foreground"
-                >
-                  Limpiar filtro
-                </button>
-              </>
-            )}
-          </div>
-          <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[1fr_280px]">
-            <AppointmentCalendar
-              appointments={appointments}
-              selectedAppointmentId={selectedAppointmentId}
-              onSelectAppointment={(a) =>
-                setSelectedAppointmentId(a ? a.id : null)
-              }
-              onNewAppointment={handleNewAppointment}
-            />
-            <div className="min-h-0 space-y-6 overflow-auto lg:min-w-0">
-              <AppointmentDetail
-                appointment={selectedAppointment}
-                patientName={patientFullName(patient)}
-                patientIdDisplay={`#${patient.id}`}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onStartConsultation={undefined}
-              />
-              <AppointmentList
-                appointments={appointments}
-                selectedAppointmentId={selectedAppointmentId}
-                onSelectAppointment={(a) => setSelectedAppointmentId(a.id)}
-              />
-            </div>
-          </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex flex-col gap-4 ${className ?? ""}`.trim()}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          {appointments.length === 1
+            ? "1 cita registrada para este paciente."
+            : `${appointments.length} citas registradas para este paciente.`}
+        </p>
+        <Button type="button" variant="outline" size="sm" onClick={loadAppointments}>
+          Actualizar
+        </Button>
+      </div>
+
+      {error && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button type="button" variant="outline" size="sm" onClick={loadAppointments}>
+            Reintentar
+          </Button>
         </div>
       )}
+
+      <div className="grid min-h-0 gap-6 lg:grid-cols-[1fr_280px]">
+        <AppointmentCalendar
+          appointments={appointments}
+          selectedAppointmentId={selectedAppointmentId}
+          onSelectAppointment={(a) => setSelectedAppointmentId(a ? a.id : null)}
+          onNewAppointment={handleNewAppointment}
+        />
+        <div className="min-h-0 space-y-6 lg:min-w-0">
+          <AppointmentDetail
+            appointment={selectedAppointment}
+            patientName={patientFullName(patient)}
+            patientIdDisplay={`#${patient.id}`}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onStartConsultation={undefined}
+          />
+          <AppointmentList
+            appointments={appointments}
+            selectedAppointmentId={selectedAppointmentId}
+            onSelectAppointment={(a) => setSelectedAppointmentId(a.id)}
+          />
+        </div>
+      </div>
 
       <AppointmentFormDialog
         open={formOpen}
