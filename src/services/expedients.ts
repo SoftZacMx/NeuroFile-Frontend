@@ -31,8 +31,20 @@ export async function updateExpedient(
   return res.data;
 }
 
-export async function getExpedients(api: ApiClient): Promise<Record[]> {
-  const res = await api.get<Record[]>("/expedients");
+export interface GetExpedientsOptions {
+  patientId?: number;
+}
+
+export async function getExpedients(
+  api: ApiClient,
+  options?: GetExpedientsOptions
+): Promise<Record[]> {
+  const params = new URLSearchParams();
+  if (options?.patientId != null) {
+    params.set("patientId", String(options.patientId));
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const res = await api.get<Record[]>(`/expedients${query}`);
   if (res.error || res.data === null) {
     throw new Error(res.message ?? "Error al obtener expedientes");
   }
