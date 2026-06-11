@@ -10,8 +10,8 @@ import { PatientDetailSkeleton } from "@/components/detail/PatientDetailSkeleton
 import { DetailContentTabs } from "@/components/detail/DetailContentTabs";
 import { SummaryTab } from "@/components/detail/SummaryTab";
 import { RecordsTab } from "@/components/detail/RecordsTab";
+import { NotesTab } from "@/components/detail/NotesTab";
 import { AppointmentsView } from "@/components/appointments/AppointmentsView";
-import { ClinicalNotesView } from "@/components/clinical-notes/ClinicalNotesView";
 import { EditPatientDialog } from "@/components/patient/EditPatientDialog";
 import { Button } from "@/components/ui/button";
 import { usePatientExpedients } from "@/hooks/usePatientExpedients";
@@ -250,16 +250,18 @@ export default function PatientDetail() {
             />
           )}
           {activeTabId === "notes" && (
-            expedientsLoading && patientRecords.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Cargando expediente…</p>
-            ) : (
-              <ClinicalNotesView
-                recordId={latestRecord?.id ?? null}
-                patientName={patientFullName(patient)}
-                patientId={patient.id}
-                onNoteCreated={() => setRefreshAppointmentsKey((k) => k + 1)}
-              />
-            )
+            <NotesTab
+              patient={patient}
+              recordId={latestRecord?.id ?? null}
+              expedientsLoading={expedientsLoading}
+              expedientsError={expedientsError}
+              onRetryExpedient={() => loadPatientExpedients()}
+              onNavigateToTab={(tabId) => navigateToTab(tabId)}
+              onNoteCreated={() => {
+                setRefreshAppointmentsKey((k) => k + 1);
+                loadSummary(true);
+              }}
+            />
           )}
         </DetailContentTabs>
       </div>

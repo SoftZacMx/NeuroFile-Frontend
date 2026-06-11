@@ -6,21 +6,12 @@ import { ComponentHeader } from "@/components/common/ComponentHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NotesTabSkeleton } from "@/components/detail/NotesTabSkeleton";
 import { NotaClinica } from "./NotaClinica";
 import { QuickNoteDialog } from "./QuickNoteDialog";
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function oneWeekAgoISO(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  return d.toISOString().slice(0, 10);
-}
-
 export interface ClinicalNotesViewProps {
-  recordId: number | null;
+  recordId: number;
   patientName?: string;
   patientId?: number;
   onNoteCreated?: () => void;
@@ -36,29 +27,41 @@ export function ClinicalNotesView({
 }: ClinicalNotesViewProps) {
   const { api } = useAuth();
   const [notes, setNotes] = useState<ClinicalNote[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [quickNoteOpen, setQuickNoteOpen] = useState(false);
-  const [dateFrom, setDateFrom] = useState<string>(() => oneWeekAgoISO());
-  const [dateTo, setDateTo] = useState<string>(() => todayISO());
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-  const loadNotes = useCallback(async () => {
-    if (recordId == null) {
-      setNotes([]);
-      return;
-    }
-    setLoading(true);
-    try {
-      const list = await getClinicalNotes(api, recordId, {
-        dateFrom: dateFrom || undefined,
-        dateTo: dateTo || undefined,
-      });
-      setNotes(list);
-    } catch {
-      setNotes([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [api, recordId, dateFrom, dateTo]);
+  const loadNotes = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+      try {
+        const list = await getClinicalNotes(api, recordId, {
+          dateFrom: dateFrom || undefined,
+          dateTo: dateTo || undefined,
+        });
+        setNotes(list);
+      } catch (e) {
+        if (!isRefresh) {
+          setNotes([]);
+        }
+        setError(
+          e instanceof Error ? e.message : "Error al cargar las notas clínicas"
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [api, recordId, dateFrom, dateTo]
+  );
 
   useEffect(() => {
     loadNotes();
@@ -66,60 +69,71 @@ export function ClinicalNotesView({
 
   const handleQuickNoteSubmit = useCallback(
     async (payload: { date: string; note: string }) => {
-      if (recordId == null) return;
       await createClinicalNote(api, {
         ...payload,
         recordId,
       });
-      await loadNotes();
+      await loadNotes(true);
       onNoteCreated?.();
     },
     [api, recordId, loadNotes, onNoteCreated]
   );
 
+  const hasDateFilter = Boolean(dateFrom || dateTo);
+
   const newNoteButton = (
-    <Button
-      size="sm"
-      onClick={() => setQuickNoteOpen(true)}
-      disabled={recordId == null}
-      title={
-        recordId == null
-          ? "Cree un expediente en la pestaña Expedientes para agregar notas."
-          : undefined
-      }
-    >
+    <Button size="sm" onClick={() => setQuickNoteOpen(true)}>
       <PlusIcon className="mr-2 h-4 w-4" />
       Nueva nota
     </Button>
   );
 
-  if (recordId == null) {
+  if (loading && notes.length === 0) {
     return (
       <div className={className}>
-        <ComponentHeader
-          title="Notas Clínicas"
-          description="Historial cronológico de intervenciones y observaciones detalladas."
-          actions={newNoteButton}
-        />
-        <p className="mt-4 text-sm text-muted-foreground">
-          Este paciente no tiene expediente clínico. Cree un expediente en la
-          pestaña Expedientes para poder agregar notas clínicas.
-        </p>
+        <NotesTabSkeleton />
       </div>
     );
   }
 
   return (
-    <div className={`flex max-h-[70vh] flex-col ${className ?? ""}`}>
+    <div className={`flex max-h-[70vh] flex-col gap-4 ${className ?? ""}`.trim()}>
       <ComponentHeader
         title="Notas Clínicas"
         description="Historial cronológico de intervenciones y observaciones detalladas."
         actions={newNoteButton}
       />
 
-      <div className="flex flex-wrap items-end gap-4 border-b border-border py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          {notes.length === 1
+            ? "1 nota clínica registrada."
+            : `${notes.length} notas clínicas registradas.`}
+          {hasDateFilter ? " (filtro de fechas activo)" : ""}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => loadNotes(true)}
+          disabled={refreshing}
+        >
+          {refreshing ? "Actualizando…" : "Actualizar"}
+        </Button>
+      </div>
+
+      {error && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => loadNotes()}>
+            Reintentar
+          </Button>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-end gap-4 border-b border-border pb-3">
         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Filtrar por fecha
+          Filtrar por fecha (opcional)
         </span>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="notes-date-from" className="text-xs text-muted-foreground">
@@ -145,47 +159,43 @@ export function ClinicalNotesView({
             className="w-full min-w-[140px]"
           />
         </div>
-        {(dateFrom !== oneWeekAgoISO() || dateTo !== todayISO()) && (
+        {hasDateFilter && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className="text-muted-foreground"
             onClick={() => {
-              setDateFrom(oneWeekAgoISO());
-              setDateTo(todayISO());
+              setDateFrom("");
+              setDateTo("");
             }}
           >
-            Restablecer
+            Quitar filtro
           </Button>
-        )}
-        {(dateFrom || dateTo) && (
-          <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
-            {notes.length} notas
-          </span>
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {loading ? (
-          <p className="mt-4 text-sm text-muted-foreground">Cargando notas…</p>
-        ) : notes.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">
-            No hay notas clínicas en el rango de fechas. Use &quot;Nueva nota&quot;
-            para crear la primera.
+      <div className={`min-h-0 flex-1 overflow-y-auto ${refreshing ? "opacity-60" : ""}`}>
+        {!error && notes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {hasDateFilter
+              ? "No hay notas en el rango seleccionado."
+              : "Aún no hay notas clínicas. Use \"Nueva nota\" para crear la primera."}
           </p>
         ) : (
-          <div className="relative mt-6">
-            <div
-              className="absolute left-[5px] top-0 bottom-0 w-px bg-border"
-              aria-hidden
-            />
-            <div className="flex flex-col gap-6">
-              {notes.map((note) => (
-                <NotaClinica key={note.id} note={note} />
-              ))}
+          !error && (
+            <div className="relative mt-2">
+              <div
+                className="absolute left-[5px] top-0 bottom-0 w-px bg-border"
+                aria-hidden
+              />
+              <div className="flex flex-col gap-6">
+                {notes.map((note) => (
+                  <NotaClinica key={note.id} note={note} />
+                ))}
+              </div>
             </div>
-          </div>
+          )
         )}
       </div>
 
