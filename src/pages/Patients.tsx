@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/contexts/ConfirmDialogContext";
 import {
@@ -38,6 +39,11 @@ function IconUserPlus({ className }: { className?: string }) {
 }
 
 const PAGE_SIZE = 10;
+
+function parseStatusFilter(value: string | null): StatusFilterValue {
+  if (value === "active" || value === "inactive") return value;
+  return "all";
+}
 const PATIENT_COLUMNS = [
   { key: "patient", label: "Paciente", className: "w-[min(200px,30%)]" },
   { key: "id", label: "ID / DNI", className: "w-[100px]" },
@@ -49,11 +55,12 @@ const PATIENT_COLUMNS = [
 export default function Patients() {
   const { api, user } = useAuth();
   const confirmDialog = useConfirmDialog();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusFilter = parseStatusFilter(searchParams.get("status"));
   const [patients, setPatients] = useState<Patient[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all");
   const [page, setPage] = useState(1);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -75,6 +82,19 @@ export default function Patients() {
   useEffect(() => {
     loadPatients();
   }, [loadPatients]);
+
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") return;
+    setCreateDialogOpen(true);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("create");
+        return next;
+      },
+      { replace: true }
+    );
+  }, [searchParams, setSearchParams]);
 
   const fullName = (p: Patient) =>
     [p.first_name, p.last_name, p.second_last_name].filter(Boolean).join(" ");
@@ -109,6 +129,24 @@ export default function Patients() {
   useEffect(() => {
     setPage(1);
   }, [searchValue, statusFilter]);
+
+  const handleStatusFilterChange = useCallback(
+    (value: StatusFilterValue) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (value === "all") {
+            next.delete("status");
+          } else {
+            next.set("status", value);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   const handleCreatePatient = useCallback(
     async (payload: PatientUpdatePayload) => {
@@ -215,7 +253,7 @@ export default function Patients() {
         onSearchChange={setSearchValue}
         searchPlaceholder="Buscar por nombre, DNI o número de historial…"
         statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
+        onStatusFilterChange={handleStatusFilterChange}
       />
 
       <DataList<Patient>

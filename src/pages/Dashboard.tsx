@@ -1,18 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { getDashboardStats, getDashboardAnalytics, type DashboardPeriod } from "@/services/dashboard";
-import type { DashboardStats, DashboardAnalytics } from "@/types/dashboard";
+import {
+  getDashboardStats,
+  getDashboardTodayAppointments,
+  getDashboardTomorrowAppointments,
+} from "@/services/dashboard";
+import type { DashboardStats, DashboardTodayAppointment } from "@/types/dashboard";
 import { StatsCard } from "@/components/dashboard/StatsCard";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DashboardQuickActions } from "@/components/dashboard/DashboardQuickActions";
+import { DashboardAgendaPreview } from "@/components/dashboard/DashboardAgendaPreview";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { formatAgendaDateSubtitle } from "@/components/dashboard/appointmentUtils";
+import {
+  TodayAppointmentsDialog,
+  TomorrowAppointmentsDialog,
+} from "@/components/dashboard/TodayAppointmentsDialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 function IconPatients({ className }: { className?: string }) {
   return (
@@ -73,202 +79,180 @@ function IconCalendarNext({ className }: { className?: string }) {
   );
 }
 
-const PERIOD_OPTIONS: { value: DashboardPeriod; label: string }[] = [
-  { value: 7, label: "7 días" },
-  { value: 30, label: "30 días" },
-  { value: 90, label: "90 días" },
-];
-
 export default function Dashboard() {
   const { user, api } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<DashboardPeriod>(30);
+  const [todayAppointments, setTodayAppointments] = useState<DashboardTodayAppointment[]>([]);
+  const [tomorrowAppointments, setTomorrowAppointments] = useState<DashboardTodayAppointment[]>([]);
+  const [agendaLoading, setAgendaLoading] = useState(true);
+  const [agendaError, setAgendaError] = useState<string | null>(null);
+  const [todayAppointmentsOpen, setTodayAppointmentsOpen] = useState(false);
+  const [tomorrowAppointmentsOpen, setTomorrowAppointmentsOpen] = useState(false);
 
-  const loadStats = useCallback(async () => {
-    setLoading(true);
+  const loadDashboard = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setInitialLoading(true);
+      setAgendaLoading(true);
+    }
     setError(null);
+    setAgendaError(null);
     try {
-      const data = await getDashboardStats(api);
-      setStats(data);
+      const [statsData, todayData, tomorrowData] = await Promise.all([
+        getDashboardStats(api),
+        getDashboardTodayAppointments(api),
+        getDashboardTomorrowAppointments(api),
+      ]);
+      setStats(statsData);
+      setTodayAppointments(todayData);
+      setTomorrowAppointments(tomorrowData);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al cargar estadísticas");
-      setStats(null);
+      const message = e instanceof Error ? e.message : "Error al cargar el dashboard";
+      setError(message);
+      setAgendaError(message);
+      if (!isRefresh) {
+        setStats(null);
+        setTodayAppointments([]);
+        setTomorrowAppointments([]);
+      }
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
+      setAgendaLoading(false);
     }
   }, [api]);
 
-  const loadAnalytics = useCallback(
-    async (p: DashboardPeriod) => {
-      setAnalyticsLoading(true);
-      setAnalyticsError(null);
-      try {
-        const data = await getDashboardAnalytics(api, p);
-        setAnalytics(data);
-      } catch (e) {
-        setAnalyticsError(e instanceof Error ? e.message : "Error al cargar analíticas");
-        setAnalytics(null);
-      } finally {
-        setAnalyticsLoading(false);
-      }
-    },
-    [api]
-  );
-
   useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+    loadDashboard(false);
+  }, [loadDashboard]);
 
-  useEffect(() => {
-    loadAnalytics(period);
-  }, [period, loadAnalytics]);
+  const handlePatientClick = (patientId: number) => {
+    navigate(`/patients/${patientId}`);
+  };
+
+  const isEmptyWorkspace =
+    stats != null &&
+    stats.activePatients === 0 &&
+    stats.appointmentsToday === 0 &&
+    stats.appointmentsNextDay === 0;
 
   return (
     <div className="p-6">
-      <header className="border-b border-border pb-4">
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-      </header>
+      <DashboardHeader
+        user={user}
+        onRefresh={() => loadDashboard(true)}
+        refreshing={refreshing}
+      />
+
       <main className="mt-6 space-y-6">
-        {user?.role === "admin" && (
-          <p className="text-muted-foreground">
-            Vista de administrador: acceso a usuarios y todos los pacientes.
-          </p>
-        )}
-        {user?.role !== "admin" && (
-          <p className="text-muted-foreground">
-            Vista de terapeuta: acceso a sus pacientes.
-          </p>
-        )}
-
-        {loading && (
-          <p className="text-muted-foreground">Cargando estadísticas…</p>
-        )}
-        {error && (
-          <p className="text-destructive">{error}</p>
-        )}
-        {!loading && !error && stats && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <StatsCard
-              label="Pacientes activos"
-              value={stats.activePatients}
-              icon={<IconPatients className="h-5 w-5" />}
-            />
-            <StatsCard
-              label="Citas hoy"
-              value={stats.appointmentsToday}
-              icon={<IconCalendarToday className="h-5 w-5" />}
-            />
-            <StatsCard
-              label="Citas para el próximo día"
-              value={stats.appointmentsNextDay}
-              icon={<IconCalendarNext className="h-5 w-5" />}
-            />
+        {initialLoading && <DashboardSkeleton />}
+        {error && !initialLoading && (
+          <div className="space-y-2">
+            <p className="text-destructive">{error}</p>
+            <Button variant="outline" size="sm" onClick={() => loadDashboard(false)}>
+              Reintentar
+            </Button>
           </div>
         )}
 
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Analíticas por periodo</h2>
-          <div className="flex flex-wrap gap-2">
-            {PERIOD_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setPeriod(opt.value)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  period === opt.value
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          {analyticsLoading && (
-            <p className="text-muted-foreground">Cargando analíticas…</p>
-          )}
-          {analyticsError && (
-            <p className="text-destructive">{analyticsError}</p>
-          )}
-          {!analyticsLoading && !analyticsError && analytics && (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <Card className="rounded-lg shadow-sm">
-                <CardHeader className="pb-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Citas por periodo
-                  </h3>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart
-                      data={analytics.appointmentsByPeriod}
-                      margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fontSize: 12 }}
-                        className="text-muted-foreground"
-                      />
-                      <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                      <Tooltip
-                        contentStyle={{ borderRadius: "6px" }}
-                        formatter={(value: number) => [value, "Citas"]}
-                        labelFormatter={(label) => `Periodo: ${label}`}
-                      />
-                      <Bar
-                        dataKey="value"
-                        fill="hsl(var(--primary))"
-                        radius={[4, 4, 0, 0]}
-                        name="Citas"
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="rounded-lg shadow-sm">
-                <CardHeader className="pb-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Notas clínicas por periodo
-                  </h3>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart
-                      data={analytics.clinicalNotesByPeriod}
-                      margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fontSize: 12 }}
-                        className="text-muted-foreground"
-                      />
-                      <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
-                      <Tooltip
-                        contentStyle={{ borderRadius: "6px" }}
-                        formatter={(value: number) => [value, "Notas"]}
-                        labelFormatter={(label) => `Periodo: ${label}`}
-                      />
-                      <Bar
-                        dataKey="value"
-                        fill="hsl(var(--chart-2, var(--primary)))"
-                        radius={[4, 4, 0, 0]}
-                        name="Notas"
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+        {!initialLoading && !error && stats && (
+          <>
+            {!isEmptyWorkspace && <DashboardQuickActions />}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatsCard
+                label="Pacientes activos"
+                value={stats.activePatients}
+                icon={<IconPatients className="h-5 w-5" />}
+                to="/patients?status=active"
+                ariaLabel={`Ver ${stats.activePatients} pacientes activos`}
+              />
+              <StatsCard
+                label="Citas hoy"
+                value={stats.appointmentsToday}
+                icon={<IconCalendarToday className="h-5 w-5" />}
+                onClick={() => setTodayAppointmentsOpen(true)}
+                ariaLabel={`Ver ${stats.appointmentsToday} citas de hoy`}
+              />
+              <StatsCard
+                label="Citas de mañana"
+                value={stats.appointmentsNextDay}
+                icon={<IconCalendarNext className="h-5 w-5" />}
+                onClick={() => setTomorrowAppointmentsOpen(true)}
+                ariaLabel={`Ver ${stats.appointmentsNextDay} citas de mañana`}
+              />
             </div>
-          )}
-        </section>
+
+            {isEmptyWorkspace && (
+              <Card className="rounded-lg border-dashed shadow-sm">
+                <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+                  <p className="text-lg font-medium text-foreground">
+                    Bienvenido a NeuroFile
+                  </p>
+                  <p className="max-w-md text-sm text-muted-foreground">
+                    Aún no tienes pacientes ni citas registradas. Comienza creando
+                    tu primer paciente para agendar consultas y gestionar expedientes.
+                  </p>
+                  <Button onClick={() => navigate("/patients?create=1")}>
+                    Crear primer paciente
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {!isEmptyWorkspace && (
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <DashboardAgendaPreview
+                  title="Tu agenda de hoy"
+                  subtitle={formatAgendaDateSubtitle(0)}
+                  appointments={todayAppointments}
+                  loading={agendaLoading}
+                  error={agendaError}
+                  emptyMessage="No tienes citas programadas para hoy."
+                  emptyActionLabel="Agendar cita"
+                  onEmptyAction={() => navigate("/patients")}
+                  onRetry={() => loadDashboard(true)}
+                  onViewAll={() => setTodayAppointmentsOpen(true)}
+                  onAppointmentClick={handlePatientClick}
+                />
+                <DashboardAgendaPreview
+                  title="Citas de mañana"
+                  subtitle={formatAgendaDateSubtitle(1)}
+                  appointments={tomorrowAppointments}
+                  loading={agendaLoading}
+                  error={agendaError}
+                  emptyMessage="No tienes citas programadas para mañana."
+                  emptyActionLabel="Agendar cita"
+                  onEmptyAction={() => navigate("/patients")}
+                  onRetry={() => loadDashboard(true)}
+                  onViewAll={() => setTomorrowAppointmentsOpen(true)}
+                  onAppointmentClick={handlePatientClick}
+                />
+              </div>
+            )}
+          </>
+        )}
       </main>
+
+      <TodayAppointmentsDialog
+        open={todayAppointmentsOpen}
+        onOpenChange={setTodayAppointmentsOpen}
+        appointments={todayAppointments}
+        error={agendaError}
+        onRetry={() => loadDashboard(true)}
+      />
+      <TomorrowAppointmentsDialog
+        open={tomorrowAppointmentsOpen}
+        onOpenChange={setTomorrowAppointmentsOpen}
+        appointments={tomorrowAppointments}
+        error={agendaError}
+        onRetry={() => loadDashboard(true)}
+      />
     </div>
   );
 }
