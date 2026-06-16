@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/contexts/ConfirmDialogContext";
 import {
@@ -41,6 +42,11 @@ function IconUserPlus({ className }: { className?: string }) {
 }
 
 const PAGE_SIZE = 10;
+
+function parseStatusFilter(value: string | null): StatusFilterValue {
+  if (value === "active" || value === "inactive") return value;
+  return "all";
+}
 const PATIENT_COLUMNS = [
   { key: "id", label: "ID", className: "w-[72px]" },
   { key: "patient", label: "Paciente", className: "w-[min(200px,28%)]" },
@@ -120,6 +126,8 @@ export default function Patients() {
     },
     [setSearchParams]
   );
+  const fullName = (p: Patient) =>
+    [p.first_name, p.last_name, p.second_last_name].filter(Boolean).join(" ");
 
   const filteredPatients = useMemo(() => {
     if (!patients) return [];
@@ -151,6 +159,24 @@ export default function Patients() {
   useEffect(() => {
     setPage(1);
   }, [searchValue, statusFilter]);
+
+  const handleStatusFilterChange = useCallback(
+    (value: StatusFilterValue) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (value === "all") {
+            next.delete("status");
+          } else {
+            next.set("status", value);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   const handleCreatePatient = useCallback(
     async (payload: PatientUpdatePayload) => {
