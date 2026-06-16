@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ActionTooltip } from "@/components/common/ActionTooltip";
 import { cn } from "@/lib/utils";
 import type { Patient } from "@/types/patient";
 
@@ -28,7 +29,7 @@ function IconEye({ className }: { className?: string }) {
   );
 }
 
-function IconTrash({ className }: { className?: string }) {
+function IconPencil({ className }: { className?: string }) {
   return (
     <svg
       className={className}
@@ -36,9 +37,47 @@ function IconTrash({ className }: { className?: string }) {
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     >
-      <path d="M3 6h18v2H3zM8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6" />
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function IconUserMinus({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <line x1="17" y1="11" x2="22" y2="11" />
+    </svg>
+  );
+}
+
+function IconUserCheck({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <polyline points="16 11 18 13 22 9" />
     </svg>
   );
 }
@@ -53,21 +92,31 @@ function initials(p: Patient): string {
   return (first + last).toUpperCase() || "?";
 }
 
+function stopRowClick(event: React.MouseEvent) {
+  event.stopPropagation();
+}
+
 export interface PatientListItemProps {
   patient: Patient;
-  onDelete?: (patient: Patient) => void;
-  deletingId?: number | null;
+  onEdit?: (patient: Patient) => void;
+  onToggleActiveStatus?: (patient: Patient) => void;
+  togglingStatusId?: number | null;
 }
 
 export function PatientListItem({
   patient,
-  onDelete,
-  deletingId,
+  onEdit,
+  onToggleActiveStatus,
+  togglingStatusId,
 }: PatientListItemProps) {
-  const isDeleting = deletingId === patient.id;
+  const isTogglingStatus = togglingStatusId === patient.id;
+  const isActive = patient.is_active;
 
   return (
     <>
+      <td className="px-4 py-3 text-muted-foreground">
+        <span className="tabular-nums">{patient.id}</span>
+      </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div
@@ -78,13 +127,12 @@ export function PatientListItem({
           </div>
           <div className="min-w-0">
             <p className="font-medium text-foreground">{fullName(patient)}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {patient.phone || patient.occupation || "—"}
-            </p>
           </div>
         </div>
       </td>
-      <td className="px-4 py-3 text-muted-foreground">{patient.id}</td>
+      <td className="px-4 py-3 text-muted-foreground">
+        <span className="tabular-nums">{patient.phone || "—"}</span>
+      </td>
       <td className="px-4 py-3 text-muted-foreground">
         {patient.last_appointment
           ? formatLastAppointmentDate(patient.last_appointment.date)
@@ -103,29 +151,57 @@ export function PatientListItem({
         </span>
       </td>
       <td className="px-4 py-3">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            asChild
-            aria-label="Ver"
-          >
-            <Link to={`/patients/${patient.id}`}>
-              <IconEye className="h-4 w-4" />
-            </Link>
-          </Button>
-          {onDelete && (
+        <div className="flex items-center gap-1" onClick={stopRowClick}>
+          <ActionTooltip label="Ver ficha del paciente">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive"
-              aria-label="Eliminar"
-              disabled={isDeleting}
-              onClick={() => onDelete(patient)}
+              className="h-8 w-8"
+              asChild
+              aria-label="Ver ficha del paciente"
             >
-              <IconTrash className="h-4 w-4" />
+              <Link to={`/patients/${patient.id}`}>
+                <IconEye className="h-4 w-4" />
+              </Link>
             </Button>
+          </ActionTooltip>
+          {onEdit && (
+            <ActionTooltip label="Editar paciente">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                aria-label="Editar paciente"
+                onClick={() => onEdit(patient)}
+              >
+                <IconPencil className="h-4 w-4" />
+              </Button>
+            </ActionTooltip>
+          )}
+          {onToggleActiveStatus && (
+            <ActionTooltip
+              label={isActive ? "Inactivar paciente" : "Reactivar paciente"}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-8 w-8",
+                  isActive
+                    ? "text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                    : "text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                )}
+                aria-label={isActive ? "Inactivar paciente" : "Reactivar paciente"}
+                disabled={isTogglingStatus}
+                onClick={() => onToggleActiveStatus(patient)}
+              >
+                {isActive ? (
+                  <IconUserMinus className="h-4 w-4" />
+                ) : (
+                  <IconUserCheck className="h-4 w-4" />
+                )}
+              </Button>
+            </ActionTooltip>
           )}
         </div>
       </td>

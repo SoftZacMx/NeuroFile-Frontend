@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/contexts/ConfirmDialogContext";
 import {
   getPatients,
-  deletePatient,
   createPatient,
+  updatePatient,
   type CreatePatientPayload,
   type PatientUpdatePayload,
 } from "@/services/patients";
+import { patientToUpdatePayload } from "@/components/patient/patientFormUtils";
 import type { Patient } from "@/types/patient";
 import { ComponentHeader } from "@/components/common/ComponentHeader";
 import { ListToolbar, type StatusFilterValue } from "@/components/common/ListToolbar";
@@ -16,6 +18,7 @@ import { DataList } from "@/components/common/DataList";
 import { Pagination } from "@/components/common/Pagination";
 import { PatientListItem } from "@/components/patient/PatientListItem";
 import { CreatePatientDialog } from "@/components/patient/CreatePatientDialog";
+import { EditPatientDialog } from "@/components/patient/EditPatientDialog";
 import { PacientesEmptyState } from "@/components/empty-state/PacientesEmptyState";
 import { Button } from "@/components/ui/button";
 
@@ -45,15 +48,26 @@ function parseStatusFilter(value: string | null): StatusFilterValue {
   return "all";
 }
 const PATIENT_COLUMNS = [
-  { key: "patient", label: "Paciente", className: "w-[min(200px,30%)]" },
-  { key: "id", label: "ID / DNI", className: "w-[100px]" },
-  { key: "last_appointment", label: "Última cita", className: "w-[140px]" },
+  { key: "id", label: "ID", className: "w-[72px]" },
+  { key: "patient", label: "Paciente", className: "w-[min(200px,28%)]" },
+  { key: "phone", label: "Teléfono", className: "w-[130px]" },
+  { key: "last_appointment", label: "Última cita", className: "w-[130px]" },
   { key: "status", label: "Estado", className: "w-[100px]" },
-  { key: "actions", label: "Acciones", className: "w-[120px]" },
+  { key: "actions", label: "Acciones", className: "w-[140px]" },
 ];
+
+function parseStatusFilter(value: string | null): StatusFilterValue {
+  if (value === "active" || value === "inactive") return value;
+  return "all";
+}
+
+function patientFullName(p: Patient): string {
+  return [p.first_name, p.last_name, p.second_last_name].filter(Boolean).join(" ");
+}
 
 export default function Patients() {
   const { api, user } = useAuth();
+  const navigate = useNavigate();
   const confirmDialog = useConfirmDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const statusFilter = parseStatusFilter(searchParams.get("status"));
@@ -62,8 +76,10 @@ export default function Patients() {
   const [error, setError] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [togglingStatusId, setTogglingStatusId] = useState<number | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
 
   const loadPatients = useCallback(async () => {
     setLoading(true);
@@ -96,6 +112,20 @@ export default function Patients() {
     );
   }, [searchParams, setSearchParams]);
 
+  const handleStatusFilterChange = useCallback(
+    (value: StatusFilterValue) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (value === "all") next.delete("status");
+          else next.set("status", value);
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
   const fullName = (p: Patient) =>
     [p.first_name, p.last_name, p.second_last_name].filter(Boolean).join(" ");
 
@@ -160,27 +190,99 @@ export default function Patients() {
     [api, user?.id]
   );
 
-  const handleDelete = useCallback(
+  const handleUpdatePatient = useCallback(
+    async (payload: PatientUpdatePayload) => {
+      if (!editingPatient) throw new Error("Paciente no seleccionado");
+      return updatePatient(api, editingPatient.id, payload);
+    },
+    [api, editingPatient]
+  );
+
+  const handleToggleActiveStatus = useCallback(
     async (patient: Patient) => {
+      const nextIsActive = !patient.is_active;
       const ok = await confirmDialog({
-        title: "Confirmar eliminación",
-        message: `¿Eliminar a ${fullName(patient)}?`,
-        confirmLabel: "Eliminar",
+        title: nextIsActive ? "Reactivar paciente" : "Inactivar paciente",
+        message: nextIsActive
+          ? `¿Reactivar a ${patientFullName(patient)}? Volverá a aparecer como paciente activo.`
+          : `¿Inactivar a ${patientFullName(patient)}? Se conservará su historial clínico y dejará de contarse como activo.`,
+        confirmLabel: nextIsActive ? "Reactivar" : "Inactivar",
         cancelLabel: "Cancelar",
-        variant: "destructive",
+        variant: nextIsActive ? "default" : "destructive",
       });
       if (!ok) return;
-      setDeletingId(patient.id);
+
+      setTogglingStatusId(patient.id);
+      setError(null);
       try {
-        await deletePatient(api, patient.id);
-        setPatients((prev) => (prev ?? []).filter((p) => p.id !== patient.id));
+        const updated = await updatePatient(
+          api,
+          patient.id,
+          patientToUpdatePayload(patient, { is_active: nextIsActive })
+        );
+        setPatients((prev) =>
+          (prev ?? []).map((item) => (item.id === updated.id ? updated : item))
+        );
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Error al eliminar");
+        setError(
+          e instanceof Error
+            ? e.message
+            : nextIsActive
+              ? "Error al reactivar el paciente"
+              : "Error al inactivar el paciente"
+        );
       } finally {
-        setDeletingId(null);
+        setTogglingStatusId(null);
       }
     },
     [api, confirmDialog]
+  );
+
+  const handleEditPatient = useCallback((patient: Patient) => {
+    setEditingPatient(patient);
+    setEditDialogOpen(true);
+  }, []);
+
+  const handlePatientRowClick = useCallback(
+    (patient: Patient) => {
+      navigate(`/patients/${patient.id}`);
+    },
+    [navigate]
+  );
+
+  const handleEditDialogOpenChange = useCallback((open: boolean) => {
+    setEditDialogOpen(open);
+    if (!open) setEditingPatient(null);
+  }, []);
+
+  const handleEditSuccess = useCallback((updated: Patient) => {
+    setPatients((prev) =>
+      (prev ?? []).map((patient) => (patient.id === updated.id ? updated : patient))
+    );
+    setEditDialogOpen(false);
+    setEditingPatient(null);
+  }, []);
+
+  const createDialog = (
+    <CreatePatientDialog
+      open={createDialogOpen}
+      onOpenChange={setCreateDialogOpen}
+      createPatient={handleCreatePatient}
+      onSuccess={() => {
+        setCreateDialogOpen(false);
+        loadPatients();
+      }}
+    />
+  );
+
+  const editDialog = (
+    <EditPatientDialog
+      open={editDialogOpen}
+      onOpenChange={handleEditDialogOpenChange}
+      patient={editingPatient}
+      updatePatient={handleUpdatePatient}
+      onSuccess={handleEditSuccess}
+    />
   );
 
   if (loading && !patients?.length) {
@@ -212,15 +314,8 @@ export default function Patients() {
             onClick: () => setCreateDialogOpen(true),
           }}
         />
-        <CreatePatientDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-          createPatient={handleCreatePatient}
-          onSuccess={() => {
-            setCreateDialogOpen(false);
-            loadPatients();
-          }}
-        />
+        {createDialog}
+        {editDialog}
       </>
     );
   }
@@ -238,33 +333,33 @@ export default function Patients() {
         }
       />
 
-      <CreatePatientDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        createPatient={handleCreatePatient}
-        onSuccess={() => {
-          setCreateDialogOpen(false);
-          loadPatients();
-        }}
-      />
+      {createDialog}
+      {editDialog}
 
       <ListToolbar
         searchValue={searchValue}
         onSearchChange={setSearchValue}
-        searchPlaceholder="Buscar por nombre, DNI o número de historial…"
+        searchPlaceholder="Buscar por nombre, teléfono o ID…"
         statusFilter={statusFilter}
         onStatusFilterChange={handleStatusFilterChange}
       />
+
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
 
       <DataList<Patient>
         columns={PATIENT_COLUMNS}
         items={paginatedPatients}
         keyExtractor={(p) => p.id}
+        onRowClick={handlePatientRowClick}
+        getRowAriaLabel={(patient) => `Ver ficha de ${patientFullName(patient)}`}
         renderItem={(patient) => (
           <PatientListItem
             patient={patient}
-            onDelete={handleDelete}
-            deletingId={deletingId}
+            onEdit={handleEditPatient}
+            onToggleActiveStatus={handleToggleActiveStatus}
+            togglingStatusId={togglingStatusId}
           />
         )}
         emptyMessage="No hay pacientes que coincidan con los filtros."

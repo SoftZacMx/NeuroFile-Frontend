@@ -16,7 +16,6 @@ export interface EmergencyContact {
 
 export interface GeneralInfoCardProps {
   fullName: string;
-  id?: string | number;
   age?: string;
   status?: "active" | "inactive";
   statusLabel?: string;
@@ -73,7 +72,6 @@ function DefaultIcon({ type }: { type: ContactItem["type"] }) {
 
 export function GeneralInfoCard({
   fullName,
-  id,
   age,
   status = "active",
   statusLabel,
@@ -94,12 +92,8 @@ export function GeneralInfoCard({
             </div>
           )}
           <h2 className="mt-3 text-lg font-semibold text-foreground">{fullName}</h2>
-          {(id != null || age) && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {id != null && <>ID: #{id}</>}
-              {id != null && age && " • "}
-              {age != null && <>{age} años</>}
-            </p>
+          {age && (
+            <p className="mt-1 text-sm text-muted-foreground">{age} años</p>
           )}
           <span
             className={cn(

@@ -12,9 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { Patient } from "@/types/patient";
 import type { PatientUpdatePayload } from "@/services/patients";
+import {
+  normalizePatientGender,
+  PATIENT_GENDER_OPTIONS,
+} from "./patientFormUtils";
 
 export interface EditPatientDialogProps {
   open: boolean;
@@ -23,13 +28,6 @@ export interface EditPatientDialogProps {
   onSuccess?: (updated: Patient) => void;
   updatePatient: (payload: PatientUpdatePayload) => Promise<Patient>;
 }
-
-const GENDER_OPTIONS = [
-  { value: "", label: "Seleccione género" },
-  { value: "M", label: "Masculino" },
-  { value: "F", label: "Femenino" },
-  { value: "Otro", label: "Otro" },
-];
 
 function SectionHeader({
   title,
@@ -118,7 +116,7 @@ export function EditPatientDialog({
         last_name: patient.last_name ?? "",
         second_last_name: patient.second_last_name ?? null,
         age: patient.age ?? "",
-        gender: patient.gender ?? "",
+        gender: normalizePatientGender(patient.gender),
         address: patient.address ?? null,
         is_active: patient.is_active ?? true,
         occupation: patient.occupation ?? "",
@@ -224,7 +222,7 @@ export function EditPatientDialog({
                       )}
                       required
                     >
-                      {GENDER_OPTIONS.map((opt) => (
+                      {PATIENT_GENDER_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
@@ -269,7 +267,7 @@ export function EditPatientDialog({
                 {/* Datos adicionales */}
                 <div className="space-y-3">
                   <SectionHeader
-                    title="Datos médicos iniciales"
+                    title="Información adicional"
                     icon={<IconBriefcase />}
                   />
                   <div className="space-y-2">
@@ -281,6 +279,25 @@ export function EditPatientDialog({
                       onChange={(e) => update("occupation", e.target.value)}
                       required
                     />
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-lg border border-border p-4">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="is_active"
+                      checked={form.is_active}
+                      onCheckedChange={(checked) => update("is_active", checked)}
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="is_active" className="cursor-pointer">
+                        Paciente activo
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Desmarca esta opción para inactivar al paciente sin eliminar su
+                        historial clínico.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -302,11 +319,6 @@ export function EditPatientDialog({
                   {saving ? "Guardando…" : "Guardar paciente"}
                 </Button>
               </DialogFooter>
-
-              <p className="px-6 pb-6 text-xs text-muted-foreground">
-                Los datos son almacenados siguiendo los protocolos de seguridad
-                RGPD y encriptación de grado médico.
-              </p>
             </form>
           </DialogContent>
         </DialogOverlay>

@@ -173,7 +173,6 @@ export default function PatientDetail() {
         </div>
         <GeneralInfoCard
           fullName={patientFullName(patient)}
-          id={patient.id}
           age={patient.age}
           status={patient.is_active ? "active" : "inactive"}
           contactItems={patientToContactItems(patient)}

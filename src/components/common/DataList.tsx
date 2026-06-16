@@ -15,6 +15,8 @@ export interface DataListProps<T> {
   emptyMessage?: string;
   loading?: boolean;
   className?: string;
+  onRowClick?: (item: T) => void;
+  getRowAriaLabel?: (item: T) => string;
 }
 
 export function DataList<T>({
@@ -25,6 +27,8 @@ export function DataList<T>({
   emptyMessage = "No hay registros.",
   loading = false,
   className,
+  onRowClick,
+  getRowAriaLabel,
 }: DataListProps<T>) {
   return (
     <div className={cn("rounded-md border border-border", className)}>
@@ -65,7 +69,28 @@ export function DataList<T>({
             </tr>
           ) : (
             items.map((item) => (
-              <tr key={keyExtractor(item)} className="border-b border-border last:border-0">
+              <tr
+                key={keyExtractor(item)}
+                className={cn(
+                  "border-b border-border last:border-0",
+                  onRowClick &&
+                    "cursor-pointer transition-colors hover:bg-muted/40 focus-within:bg-muted/40"
+                )}
+                onClick={onRowClick ? () => onRowClick(item) : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onRowClick(item);
+                        }
+                      }
+                    : undefined
+                }
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? "button" : undefined}
+                aria-label={onRowClick && getRowAriaLabel ? getRowAriaLabel(item) : undefined}
+              >
                 {renderItem(item)}
               </tr>
             ))

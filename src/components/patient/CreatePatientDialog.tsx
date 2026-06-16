@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { Patient } from "@/types/patient";
 import type { PatientUpdatePayload } from "@/services/patients";
+import { PATIENT_GENDER_OPTIONS } from "./patientFormUtils";
 
 export interface CreatePatientDialogProps {
   open: boolean;
@@ -22,13 +23,6 @@ export interface CreatePatientDialogProps {
   onSuccess?: (patient: Patient) => void;
   createPatient: (payload: PatientUpdatePayload) => Promise<Patient>;
 }
-
-const GENDER_OPTIONS = [
-  { value: "", label: "Seleccione género" },
-  { value: "M", label: "Masculino" },
-  { value: "F", label: "Femenino" },
-  { value: "Otro", label: "Otro" },
-];
 
 function SectionHeader({
   title,
@@ -215,7 +209,7 @@ export function CreatePatientDialog({
                       )}
                       required
                     >
-                      {GENDER_OPTIONS.map((opt) => (
+                      {PATIENT_GENDER_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
