@@ -31,8 +31,8 @@ export function DataList<T>({
   getRowAriaLabel,
 }: DataListProps<T>) {
   return (
-    <div className={cn("rounded-md border border-border", className)}>
-      <table className="w-full table-fixed text-left text-sm">
+    <div className={cn("overflow-x-auto rounded-md border border-border", className)}>
+      <table className="w-full min-w-[48rem] table-fixed text-left text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/50">
             {columns.map((col) => (

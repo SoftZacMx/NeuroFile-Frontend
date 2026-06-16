@@ -2,19 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPatient, getPatientSummary, updatePatient } from "@/services/patients";
-import { getExpedients } from "@/services/expedients";
 import type { Patient } from "@/types/patient";
 import type { PatientSummary } from "@/types/summary";
-import type { Record } from "@/types/expedient";
 import type { ContactItem } from "@/components/detail/GeneralInfoCard";
 import { GeneralInfoCard } from "@/components/detail/GeneralInfoCard";
+import { PatientDetailSkeleton } from "@/components/detail/PatientDetailSkeleton";
 import { DetailContentTabs } from "@/components/detail/DetailContentTabs";
 import { SummaryTab } from "@/components/detail/SummaryTab";
-import { RecordResume } from "@/components/record-resume/RecordResume";
+import { RecordsTab } from "@/components/detail/RecordsTab";
+import { NotesTab } from "@/components/detail/NotesTab";
 import { AppointmentsView } from "@/components/appointments/AppointmentsView";
-import { ClinicalNotesView } from "@/components/clinical-notes/ClinicalNotesView";
 import { EditPatientDialog } from "@/components/patient/EditPatientDialog";
 import { Button } from "@/components/ui/button";
+import { usePatientExpedients } from "@/hooks/usePatientExpedients";
 
 const TABS = [
   { id: "summary", label: "Resumen" },
@@ -25,11 +25,13 @@ const TABS = [
 
 function patientToContactItems(patient: Patient): ContactItem[] {
   const items: ContactItem[] = [
-    { type: "phone", label: "Teléfono", value: patient.phone },
-    { type: "other", label: "Ocupación", value: patient.occupation },
+    { type: "phone", label: "Teléfono", value: patient.phone || "—" },
   ];
-  if (patient.address) {
-    items.push({ type: "address", label: "Dirección", value: patient.address });
+  if (patient.occupation?.trim()) {
+    items.push({ type: "other", label: "Ocupación", value: patient.occupation.trim() });
+  }
+  if (patient.address?.trim()) {
+    items.push({ type: "address", label: "Dirección", value: patient.address.trim() });
   }
   return items;
 }
@@ -55,12 +57,12 @@ export default function PatientDetail() {
     isValidTabId(tabFromUrl ?? "") ? (tabFromUrl as (typeof TABS)[number]["id"]) : TABS[0].id
   );
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [expedients, setExpedients] = useState<Record[] | null>(null);
-  const [expedientsLoading, setExpedientsLoading] = useState(false);
   const [refreshAppointmentsKey, setRefreshAppointmentsKey] = useState(0);
   const [summary, setSummary] = useState<PatientSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryRefreshing, setSummaryRefreshing] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [autoOpenAppointmentCreate, setAutoOpenAppointmentCreate] = useState(false);
 
   const loadPatient = useCallback(async () => {
     if (!patientId) return;
@@ -80,18 +82,25 @@ export default function PatientDetail() {
     loadPatient();
   }, [loadPatient]);
 
-  const loadSummary = useCallback(async () => {
+  const loadSummary = useCallback(async (isRefresh = false) => {
     if (!patientId) return;
-    setSummaryLoading(true);
+    if (isRefresh) {
+      setSummaryRefreshing(true);
+    } else {
+      setSummaryLoading(true);
+    }
     setSummaryError(null);
     try {
       const data = await getPatientSummary(api, patientId);
       setSummary(data);
     } catch (e) {
       setSummaryError(e instanceof Error ? e.message : "Error al cargar el resumen");
-      setSummary(null);
+      if (!isRefresh) {
+        setSummary(null);
+      }
     } finally {
       setSummaryLoading(false);
+      setSummaryRefreshing(false);
     }
   }, [api, patientId]);
 
@@ -101,29 +110,52 @@ export default function PatientDetail() {
     }
   }, [patient?.id, activeTabId, loadSummary]);
 
-  const loadExpedients = useCallback(async () => {
-    setExpedientsLoading(true);
-    try {
-      const list = await getExpedients(api);
-      setExpedients(list);
-    } catch {
-      setExpedients([]);
-    } finally {
-      setExpedientsLoading(false);
-    }
-  }, [api]);
-
   useEffect(() => {
+    if (tabFromUrl && !isValidTabId(tabFromUrl)) {
+      setActiveTabId(TABS[0].id);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("tab");
+          return next;
+        },
+        { replace: true }
+      );
+      return;
+    }
     if (isValidTabId(tabFromUrl ?? "") && tabFromUrl !== activeTabId) {
       setActiveTabId(tabFromUrl as (typeof TABS)[number]["id"]);
     }
-  }, [tabFromUrl]);
+  }, [tabFromUrl, activeTabId, setSearchParams]);
 
-  useEffect(() => {
-    if ((activeTabId === "records" || activeTabId === "notes") && patient?.id) {
-      loadExpedients();
-    }
-  }, [activeTabId, patient?.id, loadExpedients]);
+  const navigateToTab = useCallback(
+    (tabId: (typeof TABS)[number]["id"]) => {
+      setActiveTabId(tabId);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (tabId === TABS[0].id) next.delete("tab");
+        else next.set("tab", tabId);
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
+  const handleNewAppointment = useCallback(() => {
+    navigateToTab("appointments");
+    setAutoOpenAppointmentCreate(true);
+  }, [navigateToTab]);
+
+  const expedientsEnabled =
+    activeTabId === "records" || activeTabId === "notes";
+  const {
+    records: patientRecords,
+    loading: expedientsLoading,
+    refreshing: expedientsRefreshing,
+    error: expedientsError,
+    latestRecord,
+    loadRecords: loadPatientExpedients,
+  } = usePatientExpedients(patient?.id, expedientsEnabled);
 
   if (!patientId) {
     navigate("/patients", { replace: true });
@@ -131,11 +163,7 @@ export default function PatientDetail() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center p-6">
-        <p className="text-muted-foreground">Cargando paciente...</p>
-      </div>
-    );
+    return <PatientDetailSkeleton />;
   }
 
   if (error || !patient) {
@@ -160,7 +188,12 @@ export default function PatientDetail() {
           <span className="text-foreground">{patientFullName(patient)}</span>
         </div>
         <div className="flex gap-2 lg:flex-col">
-          <Button variant="outline" size="sm" className="flex-1 lg:flex-none">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 lg:flex-none"
+            onClick={handleNewAppointment}
+          >
             Nueva Cita
           </Button>
           <Button
@@ -184,75 +217,51 @@ export default function PatientDetail() {
           tabs={[...TABS]}
           activeTabId={activeTabId}
           onTabChange={(tabId) => {
-            const id = tabId as (typeof TABS)[number]["id"];
-            setActiveTabId(id);
-            setSearchParams((prev) => {
-              const next = new URLSearchParams(prev);
-              if (id === TABS[0].id) next.delete("tab");
-              else next.set("tab", id);
-              return next;
-            });
+            navigateToTab(tabId as (typeof TABS)[number]["id"]);
           }}
         >
           {activeTabId === "summary" && (
             <SummaryTab
               summary={summary}
               summaryLoading={summaryLoading}
+              summaryRefreshing={summaryRefreshing}
               summaryError={summaryError}
-              onRefresh={loadSummary}
+              onRefresh={() => loadSummary(true)}
+              onNavigateToTab={navigateToTab}
             />
           )}
           {activeTabId === "appointments" && (
             <AppointmentsView
               patient={patient}
               refreshTrigger={refreshAppointmentsKey}
+              autoOpenCreate={autoOpenAppointmentCreate}
+              onAutoOpenCreateHandled={() => setAutoOpenAppointmentCreate(false)}
             />
           )}
           {activeTabId === "records" && (
-            <>
-              {expedientsLoading ? (
-                <p className="text-muted-foreground">Cargando expedientes…</p>
-              ) : (() => {
-                  const patientExpedients = (expedients ?? []).filter(
-                    (e) => e.patient_id === patient?.id
-                  );
-                  const latest =
-                    patientExpedients.length > 0
-                      ? [...patientExpedients].sort((a, b) => b.id - a.id)[0]
-                      : null;
-                  if (!latest) {
-                    return (
-                      <p className="text-muted-foreground">
-                        No hay expedientes clínicos para este paciente.
-                      </p>
-                    );
-                  }
-                  return <RecordResume record={latest} />;
-                })()}
-            </>
+            <RecordsTab
+              patient={patient}
+              records={patientRecords}
+              loading={expedientsLoading}
+              refreshing={expedientsRefreshing}
+              error={expedientsError}
+              onRefresh={() => loadPatientExpedients(true)}
+              onRetry={() => loadPatientExpedients()}
+            />
           )}
           {activeTabId === "notes" && (
-            expedientsLoading ? (
-              <p className="text-muted-foreground">Cargando…</p>
-            ) : (() => {
-                const patientExpedients = (expedients ?? []).filter(
-                  (e) => e.patient_id === patient?.id
-                );
-                const latestRecord =
-                  patientExpedients.length > 0
-                    ? [...patientExpedients].sort((a, b) => b.id - a.id)[0]
-                    : null;
-                return (
-                  <ClinicalNotesView
-                    recordId={latestRecord?.id ?? null}
-                    patientName={patient ? [patient.first_name, patient.last_name, patient.second_last_name].filter(Boolean).join(" ") : undefined}
-                    patientId={patient?.id}
-                    onNoteCreated={() =>
-                      setRefreshAppointmentsKey((k) => k + 1)
-                    }
-                  />
-                );
-              })()
+            <NotesTab
+              patient={patient}
+              recordId={latestRecord?.id ?? null}
+              expedientsLoading={expedientsLoading}
+              expedientsError={expedientsError}
+              onRetryExpedient={() => loadPatientExpedients()}
+              onNavigateToTab={(tabId) => navigateToTab(tabId)}
+              onNoteCreated={() => {
+                setRefreshAppointmentsKey((k) => k + 1);
+                loadSummary(true);
+              }}
+            />
           )}
         </DetailContentTabs>
       </div>
