@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfirmDialog } from "@/contexts/ConfirmDialogContext";
 import {
@@ -13,7 +12,10 @@ import {
 import { patientToUpdatePayload } from "@/components/patient/patientFormUtils";
 import type { Patient } from "@/types/patient";
 import { ComponentHeader } from "@/components/common/ComponentHeader";
-import { ListToolbar, type StatusFilterValue } from "@/components/common/ListToolbar";
+import {
+  ListToolbar,
+  type StatusFilterValue,
+} from "@/components/common/ListToolbar";
 import { DataList } from "@/components/common/DataList";
 import { Pagination } from "@/components/common/Pagination";
 import { PatientListItem } from "@/components/patient/PatientListItem";
@@ -43,10 +45,6 @@ function IconUserPlus({ className }: { className?: string }) {
 
 const PAGE_SIZE = 10;
 
-function parseStatusFilter(value: string | null): StatusFilterValue {
-  if (value === "active" || value === "inactive") return value;
-  return "all";
-}
 const PATIENT_COLUMNS = [
   { key: "id", label: "ID", className: "w-[72px]" },
   { key: "patient", label: "Paciente", className: "w-[min(200px,28%)]" },
@@ -62,7 +60,9 @@ function parseStatusFilter(value: string | null): StatusFilterValue {
 }
 
 function patientFullName(p: Patient): string {
-  return [p.first_name, p.last_name, p.second_last_name].filter(Boolean).join(" ");
+  return [p.first_name, p.last_name, p.second_last_name]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export default function Patients() {
@@ -108,7 +108,7 @@ export default function Patients() {
         next.delete("create");
         return next;
       },
-      { replace: true }
+      { replace: true },
     );
   }, [searchParams, setSearchParams]);
 
@@ -121,13 +121,11 @@ export default function Patients() {
           else next.set("status", value);
           return next;
         },
-        { replace: true }
+        { replace: true },
       );
     },
-    [setSearchParams]
+    [setSearchParams],
   );
-  const fullName = (p: Patient) =>
-    [p.first_name, p.last_name, p.second_last_name].filter(Boolean).join(" ");
 
   const filteredPatients = useMemo(() => {
     if (!patients) return [];
@@ -160,24 +158,6 @@ export default function Patients() {
     setPage(1);
   }, [searchValue, statusFilter]);
 
-  const handleStatusFilterChange = useCallback(
-    (value: StatusFilterValue) => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          if (value === "all") {
-            next.delete("status");
-          } else {
-            next.set("status", value);
-          }
-          return next;
-        },
-        { replace: true }
-      );
-    },
-    [setSearchParams]
-  );
-
   const handleCreatePatient = useCallback(
     async (payload: PatientUpdatePayload) => {
       if (!user?.id) throw new Error("Usuario no autenticado");
@@ -187,7 +167,7 @@ export default function Patients() {
       };
       return createPatient(api, fullPayload);
     },
-    [api, user?.id]
+    [api, user?.id],
   );
 
   const handleUpdatePatient = useCallback(
@@ -195,7 +175,7 @@ export default function Patients() {
       if (!editingPatient) throw new Error("Paciente no seleccionado");
       return updatePatient(api, editingPatient.id, payload);
     },
-    [api, editingPatient]
+    [api, editingPatient],
   );
 
   const handleToggleActiveStatus = useCallback(
@@ -218,10 +198,10 @@ export default function Patients() {
         const updated = await updatePatient(
           api,
           patient.id,
-          patientToUpdatePayload(patient, { is_active: nextIsActive })
+          patientToUpdatePayload(patient, { is_active: nextIsActive }),
         );
         setPatients((prev) =>
-          (prev ?? []).map((item) => (item.id === updated.id ? updated : item))
+          (prev ?? []).map((item) => (item.id === updated.id ? updated : item)),
         );
       } catch (e) {
         setError(
@@ -229,13 +209,13 @@ export default function Patients() {
             ? e.message
             : nextIsActive
               ? "Error al reactivar el paciente"
-              : "Error al inactivar el paciente"
+              : "Error al inactivar el paciente",
         );
       } finally {
         setTogglingStatusId(null);
       }
     },
-    [api, confirmDialog]
+    [api, confirmDialog],
   );
 
   const handleEditPatient = useCallback((patient: Patient) => {
@@ -247,7 +227,7 @@ export default function Patients() {
     (patient: Patient) => {
       navigate(`/patients/${patient.id}`);
     },
-    [navigate]
+    [navigate],
   );
 
   const handleEditDialogOpenChange = useCallback((open: boolean) => {
@@ -257,7 +237,9 @@ export default function Patients() {
 
   const handleEditSuccess = useCallback((updated: Patient) => {
     setPatients((prev) =>
-      (prev ?? []).map((patient) => (patient.id === updated.id ? updated : patient))
+      (prev ?? []).map((patient) =>
+        patient.id === updated.id ? updated : patient,
+      ),
     );
     setEditDialogOpen(false);
     setEditingPatient(null);
@@ -344,16 +326,16 @@ export default function Patients() {
         onStatusFilterChange={handleStatusFilterChange}
       />
 
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <DataList<Patient>
         columns={PATIENT_COLUMNS}
         items={paginatedPatients}
         keyExtractor={(p) => p.id}
         onRowClick={handlePatientRowClick}
-        getRowAriaLabel={(patient) => `Ver ficha de ${patientFullName(patient)}`}
+        getRowAriaLabel={(patient) =>
+          `Ver ficha de ${patientFullName(patient)}`
+        }
         renderItem={(patient) => (
           <PatientListItem
             patient={patient}
