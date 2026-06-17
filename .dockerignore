@@ -1,0 +1,12 @@
+  node_modules
+  dist
+  .git
+  .gitignore
+  test-results
+  e2e
+  docs
+  *.log
+  .env
+  .env.example
+  Dockerfile
+  .dockerignore
