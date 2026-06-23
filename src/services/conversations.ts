@@ -7,8 +7,9 @@ export interface CreateConversationResponse {
 }
 
 /**
- * Crea una sesión de grabación para un paciente (expediente nuevo) o para un expediente existente.
- * Con patientId: crea expediente vacío y la conversación. Con recordId: conversación para ese expediente.
+ * Crea una sesión de grabación para un paciente o para un expediente existente.
+ * Con patientId: reutiliza el expediente del paciente si existe; si no, crea uno vacío y la conversación.
+ * Con recordId: conversación para ese expediente.
  */
 export async function createConversation(
   api: ApiClient,

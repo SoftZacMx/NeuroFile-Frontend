@@ -6,7 +6,7 @@ import { useConfirmDialog } from "@/contexts/ConfirmDialogContext";
 import { useExpedientLoad } from "@/hooks/useExpedientLoad";
 import { useRecording } from "@/hooks/useRecording";
 import { getPatients } from "@/services/patients";
-import { createExpedient, getExpedient, updateExpedient } from "@/services/expedients";
+import { createExpedient, getExpedient, getExpedients, updateExpedient } from "@/services/expedients";
 import { createConversation, endConversation } from "@/services/conversations";
 import { ExpedientForm } from "@/components/expedient/ExpedientForm";
 import { RecordingOverlay } from "@/components/recording/RecordingOverlay";
@@ -28,6 +28,7 @@ export default function CreateExpedient() {
   const [recordingRecordId, setRecordingRecordId] = useState<number | null>(null);
   const [recordingEnding, setRecordingEnding] = useState(false);
   const [processingRecordId, setProcessingRecordId] = useState<number | null>(null);
+  const [existingRecordId, setExistingRecordId] = useState<number | null>(null);
 
   const { initialState, loadError, loading: expedientLoading } = useExpedientLoad(id, api, isEdit);
 
@@ -94,12 +95,34 @@ export default function CreateExpedient() {
     };
   }, [api, isEdit]);
 
+  const handlePatientIdChange = useCallback(
+    async (patientId: number) => {
+      if (!patientId) {
+        setExistingRecordId(null);
+        return;
+      }
+      try {
+        const records = await getExpedients(api, { patientId });
+        setExistingRecordId(records[0]?.id ?? null);
+      } catch {
+        setExistingRecordId(null);
+      }
+    },
+    [api]
+  );
+
   const handleSubmit = useCallback(
     async (payload: ExpedientFormState) => {
       if (isEdit && id != null) {
         await updateExpedient(api, id, payload);
         toast.success("Expediente actualizado correctamente.");
       } else {
+        const existing = await getExpedients(api, { patientId: payload.patient_id });
+        if (existing.length > 0) {
+          toast.error("Este paciente ya tiene un expediente clínico.");
+          navigate(`/records/${existing[0].id}`, { replace: true });
+          return;
+        }
         await createExpedient(api, payload);
         toast.success("Expediente creado correctamente.");
       }
@@ -110,10 +133,16 @@ export default function CreateExpedient() {
 
   const handleStartRecording = useCallback(
     async (patientId: number) => {
-      const { conversationId, recordId } = await createConversation(api, { patientId });
-      console.log("Inició grabación.", { conversationId, patientId });
+      const existing = await getExpedients(api, { patientId });
+      const params =
+        existing.length > 0
+          ? { recordId: existing[0].id }
+          : { patientId };
+      const { conversationId, recordId } = await createConversation(api, params);
+      console.log("Inició grabación.", { conversationId, patientId, recordId });
       setRecordingConversationId(conversationId);
       if (recordId != null) setRecordingRecordId(recordId);
+      else if (existing.length > 0) setRecordingRecordId(existing[0].id);
     },
     [api]
   );
@@ -159,6 +188,8 @@ export default function CreateExpedient() {
       <div className="p-6">
         <ExpedientForm
           patients={patients}
+          existingRecordId={existingRecordId}
+          onPatientIdChange={handlePatientIdChange}
           onSubmit={handleSubmit}
           onStartRecording={handleStartRecording}
           key="new"

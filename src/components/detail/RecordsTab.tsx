@@ -47,9 +47,7 @@ export function RecordsTab({
         <p className="text-sm text-muted-foreground">
           {records.length === 0
             ? "Sin expedientes clínicos para este paciente."
-            : records.length === 1
-              ? "1 expediente clínico registrado para este paciente."
-              : `${records.length} expedientes clínicos registrados. Se muestra el más reciente.`}
+            : "1 expediente clínico registrado para este paciente."}
         </p>
         <Button
           type="button"
@@ -83,7 +81,14 @@ export function RecordsTab({
       )}
 
       {latestRecord && (
-        <RecordResume record={latestRecord} className={refreshing ? "opacity-60" : undefined} />
+        <>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link to={`/records/${latestRecord.id}`}>Editar expediente</Link>
+            </Button>
+          </div>
+          <RecordResume record={latestRecord} className={refreshing ? "opacity-60" : undefined} />
+        </>
       )}
     </div>
   );
