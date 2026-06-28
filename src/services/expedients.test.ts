@@ -138,6 +138,20 @@ describe("expedients service", () => {
       expect(result).toEqual(list);
     });
 
+    it("gets /expedients?patientId= when patientId option is set", async () => {
+      const api = createMockApi();
+      vi.mocked(api.get).mockResolvedValue({
+        error: false,
+        result: true,
+        data: [],
+        status_code: 200,
+      });
+
+      await getExpedients(api, { patientId: 7 });
+
+      expect(api.get).toHaveBeenCalledWith("/expedients?patientId=7");
+    });
+
     it("returns empty array when API returns non-array data", async () => {
       const api = createMockApi();
       vi.mocked(api.get).mockResolvedValue({

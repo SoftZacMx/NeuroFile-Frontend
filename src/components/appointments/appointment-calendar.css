@@ -1,21 +1,27 @@
-/* Scoped styles for react-big-calendar — matches NeuroFile detail cards */
+/* Scoped styles for react-big-calendar — uses app theme tokens (light/dark) */
 
 .nf-appointment-calendar {
-  --nf-cal-border: #e2e8f0;
-  --nf-cal-muted-bg: #f8fafc;
-  --nf-cal-title: #1e293b;
-  --nf-cal-header: #64748b;
-  --nf-cal-event-active-bg: #dbeafe;
-  --nf-cal-event-active-text: #1d4ed8;
-  --nf-cal-event-cancel-bg: #f1f5f9;
-  --nf-cal-event-cancel-text: #64748b;
-  --nf-cal-today-ring: rgba(59, 130, 246, 0.14);
+  --nf-cal-surface: hsl(var(--card));
+  --nf-cal-border: hsl(var(--border));
+  --nf-cal-muted-bg: hsl(var(--muted));
+  --nf-cal-title: hsl(var(--foreground));
+  --nf-cal-header: hsl(var(--muted-foreground));
+  --nf-cal-event-active-bg: hsl(var(--primary) / 0.18);
+  --nf-cal-event-active-text: hsl(var(--primary));
+  --nf-cal-event-cancel-bg: hsl(var(--muted));
+  --nf-cal-event-cancel-text: hsl(var(--muted-foreground));
+  --nf-cal-today-ring: hsl(var(--primary) / 0.2);
+  --nf-cal-today-bg: hsl(var(--primary) / 0.08);
+  --nf-cal-accent: hsl(var(--primary));
+  --nf-cal-grid-line: hsl(var(--border) / 0.65);
+  --nf-cal-slot-line: hsl(var(--border) / 0.35);
 }
 
 .nf-appointment-calendar .rbc-calendar {
   font-family: inherit;
   height: 100%;
   min-height: 0;
+  color: var(--nf-cal-title);
 }
 
 .nf-appointment-calendar .rbc-month-view,
@@ -24,7 +30,7 @@
   border: 1px solid var(--nf-cal-border);
   border-radius: 12px;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--nf-cal-surface);
 }
 
 .nf-appointment-calendar .rbc-header {
@@ -36,7 +42,7 @@
   text-align: center;
   color: var(--nf-cal-header);
   border-color: var(--nf-cal-border);
-  background: #ffffff;
+  background: var(--nf-cal-surface);
 }
 
 .nf-appointment-calendar .rbc-header + .rbc-header {
@@ -49,6 +55,11 @@
 
 .nf-appointment-calendar .rbc-day-bg + .rbc-day-bg {
   border-left: 1px solid var(--nf-cal-border);
+}
+
+.nf-appointment-calendar .rbc-day-bg,
+.nf-appointment-calendar .rbc-row-bg {
+  background: var(--nf-cal-surface);
 }
 
 .nf-appointment-calendar .rbc-off-range-bg {
@@ -80,12 +91,12 @@
 
 .nf-appointment-calendar .rbc-now .rbc-button-link {
   font-weight: 700;
-  color: #2563eb;
+  color: var(--nf-cal-accent);
   background: var(--nf-cal-today-ring);
 }
 
 .nf-appointment-calendar .rbc-today {
-  background: rgba(59, 130, 246, 0.04);
+  background: var(--nf-cal-today-bg);
 }
 
 .nf-appointment-calendar .rbc-month-view {
@@ -138,7 +149,7 @@
 
 .nf-appointment-calendar .rbc-event.rbc-selected,
 .nf-appointment-calendar .rbc-event:focus {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--nf-cal-accent);
   outline-offset: 1px;
 }
 
@@ -146,7 +157,7 @@
   margin: 0.125rem 0.375rem;
   font-size: 0.6875rem;
   font-weight: 500;
-  color: #2563eb;
+  color: var(--nf-cal-accent);
   background: transparent;
 }
 
@@ -159,9 +170,58 @@
   border-color: var(--nf-cal-border);
 }
 
-.nf-appointment-calendar .rbc-time-view .rbc-allday-cell,
+/* Week / day view — override react-big-calendar #ddd / #f7f7f7 grid lines */
+.nf-appointment-calendar .rbc-timeslot-group {
+  border-bottom: 1px solid var(--nf-cal-grid-line);
+}
+
+.nf-appointment-calendar .rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid var(--nf-cal-slot-line);
+}
+
+.nf-appointment-calendar .rbc-time-content {
+  border-top: 1px solid var(--nf-cal-grid-line);
+}
+
+.nf-appointment-calendar .rbc-time-content > * + * > * {
+  border-left: 1px solid var(--nf-cal-grid-line);
+}
+
+.nf-appointment-calendar .rbc-time-header-content {
+  border-left: 1px solid var(--nf-cal-grid-line);
+}
+
+.nf-appointment-calendar .rbc-time-header.rbc-overflowing {
+  border-right: 1px solid var(--nf-cal-grid-line);
+}
+
+.nf-appointment-calendar .rbc-time-header > .rbc-row:first-child,
+.nf-appointment-calendar .rbc-time-header > .rbc-row.rbc-row-resource,
+.nf-appointment-calendar .rbc-time-header-content > .rbc-row.rbc-row-resource {
+  border-bottom: 1px solid var(--nf-cal-grid-line);
+}
+
+.nf-appointment-calendar .rbc-time-view .rbc-allday-cell + .rbc-allday-cell {
+  border-left: 1px solid var(--nf-cal-grid-line);
+}
+
+.nf-appointment-calendar .rbc-time-column {
+  border-color: var(--nf-cal-grid-line);
+}
+
 .nf-appointment-calendar .rbc-time-view .rbc-time-gutter {
-  background: #ffffff;
+  border-right: 1px solid var(--nf-cal-grid-line);
+}
+
+.nf-appointment-calendar .rbc-day-slot .rbc-event,
+.nf-appointment-calendar .rbc-day-slot .rbc-background-event {
+  border-color: transparent !important;
+}
+
+.nf-appointment-calendar .rbc-time-view .rbc-allday-cell,
+.nf-appointment-calendar .rbc-time-view .rbc-time-gutter,
+.nf-appointment-calendar .rbc-time-header {
+  background: var(--nf-cal-surface);
 }
 
 .nf-appointment-calendar .rbc-time-gutter .rbc-timeslot-group {
@@ -169,15 +229,34 @@
   color: var(--nf-cal-header);
 }
 
+.nf-appointment-calendar .rbc-label {
+  color: var(--nf-cal-header);
+}
+
 .nf-appointment-calendar .rbc-current-time-indicator {
-  background-color: #3b82f6;
+  background-color: var(--nf-cal-accent);
 }
 
 .nf-appointment-calendar .rbc-agenda-table {
   border-color: var(--nf-cal-border);
+  background: var(--nf-cal-surface);
 }
 
 .nf-appointment-calendar .rbc-agenda-date-cell,
-.nf-appointment-calendar .rbc-agenda-time-cell {
+.nf-appointment-calendar .rbc-agenda-time-cell,
+.nf-appointment-calendar .rbc-agenda-event-cell {
+  color: var(--nf-cal-title);
+  border-color: var(--nf-cal-border);
+}
+
+.nf-appointment-calendar .rbc-overlay {
+  background: var(--nf-cal-surface);
+  border: 1px solid var(--nf-cal-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px hsl(var(--foreground) / 0.12);
+}
+
+.nf-appointment-calendar .rbc-overlay-header {
+  border-bottom: 1px solid var(--nf-cal-border);
   color: var(--nf-cal-title);
 }

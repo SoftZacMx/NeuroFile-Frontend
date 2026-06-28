@@ -95,13 +95,13 @@ function CalendarToolbar({
   ];
 
   return (
-    <div className="mb-4 flex flex-col gap-4 border-b border-[#e2e8f0] pb-4">
+    <div className="mb-4 flex flex-col gap-4 border-b border-border pb-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Calendario
           </p>
-          <h2 className="text-xl font-semibold capitalize text-[#1e293b]">
+          <h2 className="text-xl font-semibold capitalize text-foreground">
             {label}
           </h2>
         </div>
@@ -118,7 +118,6 @@ function CalendarToolbar({
             type="button"
             variant="outline"
             size="sm"
-            className="border-[#e2e8f0] bg-white text-[#1e293b] shadow-none hover:bg-[#f8fafc]"
             onClick={() => onNavigate("PREV")}
           >
             Anterior
@@ -127,7 +126,6 @@ function CalendarToolbar({
             type="button"
             variant="outline"
             size="sm"
-            className="border-[#e2e8f0] bg-white text-[#1e293b] shadow-none hover:bg-[#f8fafc]"
             onClick={() => onNavigate("TODAY")}
           >
             Hoy
@@ -136,14 +134,13 @@ function CalendarToolbar({
             type="button"
             variant="outline"
             size="sm"
-            className="border-[#e2e8f0] bg-white text-[#1e293b] shadow-none hover:bg-[#f8fafc]"
             onClick={() => onNavigate("NEXT")}
           >
             Siguiente
           </Button>
         </div>
 
-        <div className="inline-flex rounded-lg border border-[#e2e8f0] bg-white p-0.5 shadow-sm">
+        <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
           {viewButtons.map(({ id, label: viewLabel }) => (
             <Button
               key={id}
@@ -152,8 +149,7 @@ function CalendarToolbar({
               size="sm"
               className={cn(
                 "min-w-[4.25rem] rounded-md shadow-none",
-                view !== id &&
-                  "text-[#64748b] hover:bg-[#f8fafc] hover:text-[#1e293b]"
+                view !== id && "text-muted-foreground hover:text-foreground"
               )}
               onClick={() => onView(id)}
             >

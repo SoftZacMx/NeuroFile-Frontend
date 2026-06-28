@@ -2,20 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPatient, getPatientSummary, updatePatient } from "@/services/patients";
-import { getExpedients } from "@/services/expedients";
 import type { Patient } from "@/types/patient";
 import type { PatientSummary } from "@/types/summary";
-import type { Record } from "@/types/expedient";
 import type { ContactItem } from "@/components/detail/GeneralInfoCard";
 import { GeneralInfoCard } from "@/components/detail/GeneralInfoCard";
 import { PatientDetailSkeleton } from "@/components/detail/PatientDetailSkeleton";
 import { DetailContentTabs } from "@/components/detail/DetailContentTabs";
 import { SummaryTab } from "@/components/detail/SummaryTab";
-import { RecordResume } from "@/components/record-resume/RecordResume";
+import { RecordsTab } from "@/components/detail/RecordsTab";
+import { NotesTab } from "@/components/detail/NotesTab";
 import { AppointmentsView } from "@/components/appointments/AppointmentsView";
-import { ClinicalNotesView } from "@/components/clinical-notes/ClinicalNotesView";
 import { EditPatientDialog } from "@/components/patient/EditPatientDialog";
 import { Button } from "@/components/ui/button";
+import { usePatientExpedients } from "@/hooks/usePatientExpedients";
 
 const TABS = [
   { id: "summary", label: "Resumen" },
@@ -58,8 +57,6 @@ export default function PatientDetail() {
     isValidTabId(tabFromUrl ?? "") ? (tabFromUrl as (typeof TABS)[number]["id"]) : TABS[0].id
   );
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [expedients, setExpedients] = useState<Record[] | null>(null);
-  const [expedientsLoading, setExpedientsLoading] = useState(false);
   const [refreshAppointmentsKey, setRefreshAppointmentsKey] = useState(0);
   const [summary, setSummary] = useState<PatientSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -113,18 +110,6 @@ export default function PatientDetail() {
     }
   }, [patient?.id, activeTabId, loadSummary]);
 
-  const loadExpedients = useCallback(async () => {
-    setExpedientsLoading(true);
-    try {
-      const list = await getExpedients(api);
-      setExpedients(list);
-    } catch {
-      setExpedients([]);
-    } finally {
-      setExpedientsLoading(false);
-    }
-  }, [api]);
-
   useEffect(() => {
     if (tabFromUrl && !isValidTabId(tabFromUrl)) {
       setActiveTabId(TABS[0].id);
@@ -161,11 +146,16 @@ export default function PatientDetail() {
     setAutoOpenAppointmentCreate(true);
   }, [navigateToTab]);
 
-  useEffect(() => {
-    if ((activeTabId === "records" || activeTabId === "notes") && patient?.id) {
-      loadExpedients();
-    }
-  }, [activeTabId, patient?.id, loadExpedients]);
+  const expedientsEnabled =
+    activeTabId === "records" || activeTabId === "notes";
+  const {
+    records: patientRecords,
+    loading: expedientsLoading,
+    refreshing: expedientsRefreshing,
+    error: expedientsError,
+    latestRecord,
+    loadRecords: loadPatientExpedients,
+  } = usePatientExpedients(patient?.id, expedientsEnabled);
 
   if (!patientId) {
     navigate("/patients", { replace: true });
@@ -249,50 +239,29 @@ export default function PatientDetail() {
             />
           )}
           {activeTabId === "records" && (
-            <>
-              {expedientsLoading ? (
-                <p className="text-muted-foreground">Cargando expedientes…</p>
-              ) : (() => {
-                  const patientExpedients = (expedients ?? []).filter(
-                    (e) => e.patient_id === patient?.id
-                  );
-                  const latest =
-                    patientExpedients.length > 0
-                      ? [...patientExpedients].sort((a, b) => b.id - a.id)[0]
-                      : null;
-                  if (!latest) {
-                    return (
-                      <p className="text-muted-foreground">
-                        No hay expedientes clínicos para este paciente.
-                      </p>
-                    );
-                  }
-                  return <RecordResume record={latest} />;
-                })()}
-            </>
+            <RecordsTab
+              patient={patient}
+              records={patientRecords}
+              loading={expedientsLoading}
+              refreshing={expedientsRefreshing}
+              error={expedientsError}
+              onRefresh={() => loadPatientExpedients(true)}
+              onRetry={() => loadPatientExpedients()}
+            />
           )}
           {activeTabId === "notes" && (
-            expedientsLoading ? (
-              <p className="text-muted-foreground">Cargando…</p>
-            ) : (() => {
-                const patientExpedients = (expedients ?? []).filter(
-                  (e) => e.patient_id === patient?.id
-                );
-                const latestRecord =
-                  patientExpedients.length > 0
-                    ? [...patientExpedients].sort((a, b) => b.id - a.id)[0]
-                    : null;
-                return (
-                  <ClinicalNotesView
-                    recordId={latestRecord?.id ?? null}
-                    patientName={patient ? [patient.first_name, patient.last_name, patient.second_last_name].filter(Boolean).join(" ") : undefined}
-                    patientId={patient?.id}
-                    onNoteCreated={() =>
-                      setRefreshAppointmentsKey((k) => k + 1)
-                    }
-                  />
-                );
-              })()
+            <NotesTab
+              patient={patient}
+              recordId={latestRecord?.id ?? null}
+              expedientsLoading={expedientsLoading}
+              expedientsError={expedientsError}
+              onRetryExpedient={() => loadPatientExpedients()}
+              onNavigateToTab={(tabId) => navigateToTab(tabId)}
+              onNoteCreated={() => {
+                setRefreshAppointmentsKey((k) => k + 1);
+                loadSummary(true);
+              }}
+            />
           )}
         </DetailContentTabs>
       </div>
