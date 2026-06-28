@@ -48,6 +48,10 @@ const defaultFormState: ExpedientFormState = {
 export interface ExpedientFormProps {
   patients: Patient[];
   patientName?: string;
+  /** ID del expediente existente para el paciente seleccionado (modo creación). */
+  existingRecordId?: number | null;
+  /** Se invoca al seleccionar o cambiar el paciente en modo creación. */
+  onPatientIdChange?: (patientId: number) => void;
   /** Cuando se proporciona, el formulario se usa en modo edición (campos prellenados). */
   initialState?: ExpedientFormState;
   onSubmit: (payload: ExpedientFormState) => Promise<void>;
@@ -58,6 +62,8 @@ export interface ExpedientFormProps {
 export function ExpedientForm({
   patients,
   patientName,
+  existingRecordId = null,
+  onPatientIdChange,
   initialState,
   onSubmit,
   onStartRecording,
@@ -126,7 +132,13 @@ export function ExpedientForm({
           <ReasonAndDemandStep
             state={state}
             patients={patients}
-            onChange={updateState}
+            existingRecordId={existingRecordId}
+            onChange={(update) => {
+              updateState(update);
+              if (update.patient_id != null) {
+                onPatientIdChange?.(update.patient_id);
+              }
+            }}
             onStartRecording={onStartRecording}
           />
         )}
@@ -162,7 +174,11 @@ export function ExpedientForm({
             Siguiente
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={submitting} data-testid="expedient-submit">
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || (existingRecordId != null && !initialState)}
+            data-testid="expedient-submit"
+          >
             {submitting ? "Guardando…" : "Guardar expediente"}
           </Button>
         )}

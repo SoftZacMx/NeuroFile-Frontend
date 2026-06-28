@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export interface ReasonAndDemandStepProps {
     "patient_id" | "consultation_reason" | "treatment_demand"
   >;
   patients: Patient[];
+  existingRecordId?: number | null;
   onChange: (update: Partial<ExpedientFormState>) => void;
   /** Al hacer clic en "Iniciar grabación" se llama con el patient_id actual. */
   onStartRecording?: (patientId: number) => Promise<void>;
@@ -37,6 +39,7 @@ export interface ReasonAndDemandStepProps {
 export function ReasonAndDemandStep({
   state,
   patients,
+  existingRecordId = null,
   onChange,
   onStartRecording,
 }: ReasonAndDemandStepProps) {
@@ -75,6 +78,17 @@ export function ReasonAndDemandStep({
                 {selectedPatient ? "Cambiar" : "Seleccionar paciente"}
               </Button>
             </div>
+            {existingRecordId != null && (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Este paciente ya tiene un expediente clínico.{" "}
+                <Link
+                  to={`/records/${existingRecordId}`}
+                  className="font-medium underline underline-offset-2"
+                >
+                  Editar expediente existente
+                </Link>
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="exp-consultation_reason">Motivo de consulta *</Label>
